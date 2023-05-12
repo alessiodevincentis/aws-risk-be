@@ -11,9 +11,12 @@ const impostazioniController = require('../controller/impostazioni/impostazioni-
 const duvriController = require('../controller/duvri/duvri-controller.js');
 const planimetriaController = require('../controller/planimetria/planimetria-controller.js');
 const attivitaLavorativaController = require('../controller/attivita-lavorativa/attivita-lavorativa-controller.js');
-
+const loginController = require('../controller/login/login-controller.js');
 
 // API
+
+// LOGIN
+route.post('/api/login',loginController.auth);
 
 // AZIENDA
 route.post('/api/azienda', aziendaController.insert);
