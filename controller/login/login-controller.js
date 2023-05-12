@@ -19,5 +19,5 @@ exports.auth = async (req, res)=>{
         'your-secret-key'
     );
     // Invio della risposta con il token
-    res.json({ token });
+    res.json({ token: token, username: user.username });
 }

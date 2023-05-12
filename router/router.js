@@ -5,7 +5,7 @@ const storage = require('./../database/grid-fs-storage');
 const mongoose = require('mongoose');
 let Grid = require('gridfs-stream');
 
-const aziendaController = require('../controller/azienda/azienda-controller.js');
+const dittaController = require('../controller/azienda/ditta-controller.js');
 const documentoController = require('../controller/documento/documento-controller.js');
 const impostazioniController = require('../controller/impostazioni/impostazioni-controller.js');
 const duvriController = require('../controller/duvri/duvri-controller.js');
@@ -18,12 +18,12 @@ const loginController = require('../controller/login/login-controller.js');
 // LOGIN
 route.post('/api/login',loginController.auth);
 
-// AZIENDA
-route.post('/api/azienda', aziendaController.insert);
-route.put('/api/azienda', aziendaController.update);
-route.get('/api/azienda', aziendaController.find);
-route.get('/api/azienda-by-id', aziendaController.findById);
-route.delete('/api/azienda', aziendaController.delete);
+// DITTA
+route.post('/api/ditta', dittaController.insert);
+route.put('/api/ditta', dittaController.update);
+route.get('/api/ditta', dittaController.find);
+route.get('/api/ditta-by-id', dittaController.findById);
+route.delete('/api/ditta', dittaController.delete);
 
 // IMPOSTAZIONI
 route.post('/api/impostazioni', impostazioniController.save);

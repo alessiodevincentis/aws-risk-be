@@ -1,4 +1,4 @@
-const AziendaDb = require('../../model/azienda.js')
+const DittaDb = require('../../model/ditta.js')
 
 // retrieve and return all aziende
 exports.find = (req, res)=>{
@@ -19,24 +19,22 @@ exports.find = (req, res)=>{
         queryFilter = queryFilter ? queryFilter : {};
         queryFilter['$and'] = [{$or: [{dataArchiviazione:{$eq:null}},{dataArchiviazione: {$exists: false}}]}]
     }
-    AziendaDb.find(queryFilter)
-        .then(aziende => {
-            res.send(aziende)
+    DittaDb.find(queryFilter)
+        .then(ditte => {
+            res.send(ditte)
         })
         .catch(err => {
-            res.status(500).send({ message : err.message || "Error Occurred while retriving azienda information" })
+            res.status(500).send({ message : err.message || "Error Occurred while retriving ditte information" })
         })
-
-
 }
 
 exports.findById = (req, res)=>{
-    AziendaDb.find({'anagrafica.codiceFiscale':req.query.idAzienda})
-        .then(azienda => {
-            res.send(azienda[0])
+    DittaDb.find({'anagrafica.codiceFiscale':req.query.idAzienda})
+        .then(ditta => {
+            res.send(ditta[0])
         })
         .catch(err => {
-            res.status(500).send({ message : err.message || "Error Occurred while retriving azienda information" })
+            res.status(500).send({ message : err.message || "Error Occurred while retriving ditta information" })
         })
 
 
@@ -44,7 +42,7 @@ exports.findById = (req, res)=>{
 
 exports.insert = (req, res)=>{
     console.log(req.body)
-    AziendaDb.create(req.body.azienda)
+    DittaDb.create(req.body.ditta)
         .then(result => {
             res.send(result)
         })
@@ -56,7 +54,7 @@ exports.insert = (req, res)=>{
 
 exports.update = (req, res)=>{
     console.log(req.body)
-    AziendaDb.findByIdAndUpdate(req.body.azienda._id,req.body.azienda)
+    DittaDb.findByIdAndUpdate(req.body.ditta._id,req.body.ditta)
         .then(result => {
             res.send(result)
         })
@@ -70,12 +68,12 @@ exports.update = (req, res)=>{
 
 exports.delete = (req, res)=>{
     console.log(req.query)
-    AziendaDb.findByIdAndDelete(req.query.idAzienda)
+    DittaDb.findByIdAndDelete(req.query.idDitta)
         .then(result => {
             res.send(result)
         })
         .catch(err => {
             console.error(err)
-            res.status(500).send({ message : err.message || "Error Occurred while deleting azienda" })
+            res.status(500).send({ message : err.message || "Error Occurred while deleting ditta" })
         })
 }
