@@ -12,6 +12,8 @@ const duvriController = require('../controller/duvri/duvri-controller.js');
 const planimetriaController = require('../controller/planimetria/planimetria-controller.js');
 const attivitaLavorativaController = require('../controller/attivita-lavorativa/attivita-lavorativa-controller.js');
 const loginController = require('../controller/login/login-controller.js');
+const mezzoController = require('../controller/mezzo/mezzo-controller.js');
+
 
 // API
 
@@ -46,6 +48,12 @@ route.post('/api/attivita', attivitaLavorativaController.insert);
 route.put('/api/attivita', attivitaLavorativaController.update);
 route.get('/api/attivita', attivitaLavorativaController.find);
 route.delete('/api/attivita', attivitaLavorativaController.delete);
+
+// MEZZO
+route.post('/api/mezzo', mezzoController.insert);
+route.put('/api/mezzo', mezzoController.update);
+route.get('/api/mezzo', mezzoController.find);
+route.delete('/api/mezzo', mezzoController.delete);
 
 // DOCUMENTO
 // Route for file upload
