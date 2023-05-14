@@ -52,7 +52,7 @@ route.delete('/api/attivita', attivitaLavorativaController.delete);
 const upload = multer({ storage: storage });
 route.post('/api/documento', upload.single('file'),
     function (req,res) {
-    res.send({message: 'File uploadato Correttamente'})
+    res.send({file: req.file})
 });
 route.get('/api/documento',
     function (req,res) {

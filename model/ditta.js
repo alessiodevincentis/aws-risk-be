@@ -154,6 +154,9 @@ var schema = new mongoose.Schema({
             idTipoDocumento: {
                 type: mongoose.Schema.Types.ObjectId
             },
+            idStorage: {
+                type: mongoose.Schema.Types.ObjectId
+            },
             nomeFile: {
                 type: String
             },

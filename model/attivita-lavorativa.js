@@ -10,7 +10,26 @@ var schema = new mongoose.Schema({
     idAree: [String],
     idAziende: [String],
     idDipendenti: [String],
-    idMezzi: [String]
+    idMezzi: [String],
+    documentazione: {
+        documenti:[{
+            id: {
+                type: String
+            },
+            idTipoDocumento: {
+                type: mongoose.Schema.Types.ObjectId
+            },
+            nomeFile: {
+                type: String
+            },
+            descrizione: {
+                type: String
+            },
+            dataScadenza: {
+                type: Date
+            }
+        }]
+    }
 });
 
 const AttivitaLavorativaDb = mongoose.model('AttivitaLavorativaDb', schema, 'attivita_lavorativa');
