@@ -54,22 +54,6 @@ route.post('/api/documento', upload.single('file'),
     function (req,res) {
     res.send({file: req.file})
 });
-route.get('/api/documento',
-    function (req,res) {
-        const gfs = Grid(mongoose.connection.db, mongoose.mongo);
-        gfs.files.findOne({filename: 'products (1) (1) (2).pdf'}, function (err,file){
-            console.log('DENTRO FI')
-            if (err) {
-                return res.status(400).send({error: err});
-            }
-            if (!file) {
-                return res.status(400).send({error:'File not found'})
-            }
-            const readstream = gfs.createReadStream(file._id);
-            res.set('Content-Type',file.contentType);
-            res.set('Content-Disposition','attachment; filename="' +file.filename+'"');
-            readstream.pipe(res);
-        })
-    });
+route.get('/api/documento', documentoController.get);
 
 module.exports = route

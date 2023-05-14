@@ -1,10 +1,15 @@
-exports.upload = (req, res)=>{
-    console.log(req.body)
-    upload(req,res, (err) => {
-        if(err){
-            res.status(500).send({error_code:1,err_desc:err});
-            return;
-        }
-        res.send({error_code:0, error_desc: null, file_uploaded: true});
-    });
+const mongoose = require('mongoose');
+const DocumentoDb = require('../../model/documento.js')
+
+exports.get = (req, res)=>{
+    DocumentoDb.find({'files_id':new mongoose.Types.ObjectId(req.query.idFile)})
+        .then(doc => {
+            console.log('FOUND')
+            res.send(doc[0])
+        })
+        .catch(err => {
+            res.status(500).send({ message : err.message || "Error Occurred while retriving ditta information" })
+        })
+
+
 }
