@@ -13,6 +13,7 @@ const planimetriaController = require('../controller/planimetria/planimetria-con
 const attivitaLavorativaController = require('../controller/attivita-lavorativa/attivita-lavorativa-controller.js');
 const loginController = require('../controller/login/login-controller.js');
 const mezzoController = require('../controller/mezzo/mezzo-controller.js');
+const personaleController = require('../controller/personale/personale-controller.js');
 
 
 // API
@@ -54,6 +55,12 @@ route.post('/api/mezzo', mezzoController.insert);
 route.put('/api/mezzo', mezzoController.update);
 route.get('/api/mezzo', mezzoController.find);
 route.delete('/api/mezzo', mezzoController.delete);
+
+// PERSONALE
+route.post('/api/personale', personaleController.insert);
+route.put('/api/personale', personaleController.update);
+route.get('/api/personale', personaleController.find);
+route.delete('/api/personale', personaleController.delete);
 
 // DOCUMENTO
 // Route for file upload
