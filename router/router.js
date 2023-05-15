@@ -49,6 +49,7 @@ route.post('/api/attivita', attivitaLavorativaController.insert);
 route.put('/api/attivita', attivitaLavorativaController.update);
 route.get('/api/attivita', attivitaLavorativaController.find);
 route.delete('/api/attivita', attivitaLavorativaController.delete);
+route.post('/api/attivita/controlli', attivitaLavorativaController.controlli);
 
 // MEZZO
 route.post('/api/mezzo', mezzoController.insert);
