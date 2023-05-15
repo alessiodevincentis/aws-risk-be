@@ -88,10 +88,12 @@ exports.controlli = async (req, res)=>{
                     let allFounded = fattoriRischioAree.every((fattoRischioArea) => fattoriRischioDip.includes(fattoRischioArea));
                     if (!allFounded) {
                         const fattoriRischioMancanti = fattoriRischioAree.filter((item) => fattoriRischioDip.indexOf(item) < 0);
-                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti fattori di rischio: ' + fattoriRischioMancanti.toString(),icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti fattori di rischio: ' + fattoriRischioMancanti.toString(),
+                            icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                     }
                 } else {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta il documento di idoneità sanitaria',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta il documento di idoneità sanitaria',
+                        icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                 }
             }
         } else {
@@ -108,10 +110,12 @@ exports.controlli = async (req, res)=>{
         if (ditte && ditte.length > 0) {
             for(const ditta of ditte) {
                 if (documentazioneInScadenza(ditta)) {
-                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti in scadenza',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti in scadenza',
+                        icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'aziende/' + ditta._id});
                 }
                 if (documentazioneScaduta(ditta)) {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti scaduti',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti scaduti',
+                        icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'aziende/' + ditta._id});
                 }
             }
         } else {
@@ -121,10 +125,12 @@ exports.controlli = async (req, res)=>{
         if (personale && personale.length > 0) {
             for(const dip of personale) {
                 if (documentazioneInScadenza(dip)) {
-                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti in scadenza',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti in scadenza',
+                        icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                 }
                 if (documentazioneScaduta(dip)) {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti scaduti',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti scaduti',
+                        icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                 }
             }
         }
