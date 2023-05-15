@@ -196,7 +196,7 @@ documentazioneInScadenza = function (obj) {
     let isDocumentazioneInScadenza = false;
     const today = new Date().getTime();
     if (obj.documentazione && obj.documentazione.documenti) {
-        const documentiScaduti = obj.documentazione.documenti.filter((doc) => doc.dataScadenza && (Math.floor((new Date(doc.dataScadenza).getTime() - today) / 1000 / 60 / 60 / 24)) >= 0 &&
+        const documentiScaduti = obj.documentazione.documenti.filter((doc) =>!doc.sostituito && doc.dataScadenza && (Math.floor((new Date(doc.dataScadenza).getTime() - today) / 1000 / 60 / 60 / 24)) >= 0 &&
             (Math.floor((new Date(doc.dataScadenza).getTime() - today) / 1000 / 60 / 60 / 24)) <= 15);
         isDocumentazioneInScadenza = documentiScaduti && documentiScaduti.length > 0;
     }
@@ -207,7 +207,7 @@ documentazioneScaduta = function (obj) {
     let isDocumentazioneScaduta = false;
     const today = new Date().getTime();
     if (obj.documentazione && obj.documentazione.documenti) {
-        const documentiScaduti = obj.documentazione.documenti.filter((doc) => doc.dataScadenza && (Math.floor((new Date(doc.dataScadenza).getTime() - today) / 1000 / 60 / 60 / 24)) < 0);
+        const documentiScaduti = obj.documentazione.documenti.filter((doc) =>!doc.sostituito && doc.dataScadenza && (Math.floor((new Date(doc.dataScadenza).getTime() - today) / 1000 / 60 / 60 / 24)) < 0);
         isDocumentazioneScaduta = documentiScaduti && documentiScaduti.length > 0;
     }
     return isDocumentazioneScaduta;

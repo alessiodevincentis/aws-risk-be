@@ -165,7 +165,12 @@ var schema = new mongoose.Schema({
             },
             dataScadenza: {
                 type: Date
-            }
+            },
+            dataInserimento: Date,
+            note: String,
+            isDocumentoRevisione: Boolean,
+            isDocumentoSostituzione: Boolean,
+            sostituito: Boolean
         }]
     },
     dataInserimento: {type: Date},

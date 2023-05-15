@@ -46,7 +46,12 @@ const personaleSchema = new mongoose.Schema({
                 limitazioniIdoneita: {type: String},
                 prescrizioniIdoneita: {type: String},
                 dataRevisioneVisita: {type: Date}
-            }
+            },
+            dataInserimento: Date,
+            note: String,
+            isDocumentoRevisione: Boolean,
+            isDocumentoSostituzione: Boolean,
+            sostituito: Boolean
         }]
     }
 });
