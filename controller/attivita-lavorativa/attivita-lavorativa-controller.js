@@ -164,6 +164,19 @@ exports.controlli = async (req, res)=>{
         }
 
         // 5 - CHECK SU NUMERO DI DUVRI O PIANO OPERATIVO PER NUMERO AZIENDE
+        const numDitte = ditte.length;
+        if (attivitaLavorativa.titoloI) {
+           const numDocPianoOperativo = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'PIANO OPERATIVO').length : 0;
+           if (numDocPianoOperativo < numDitte) {
+               controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocPianoOperativo + ' piani operativi a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+           }
+        }
+        if (attivitaLavorativa.titoloIV) {
+            const numDocDuvri = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'DUVRI').length : 0;
+            if (numDocDuvri < numDitte) {
+                controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocDuvri + ' DUVRI a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+            }
+        }
 
         // 6 - CHECK SU DATA INIZIO E FINE ATTIVITA PRESENTI
         if (!attivitaLavorativa.dataInizioStimata || !attivitaLavorativa.dataFineStimata) {
