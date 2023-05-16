@@ -55,141 +55,190 @@ exports.delete = (req, res)=>{
         })
 }
 
+exports.iniziaAttivita = async (req,res) => {
+    try {
+        const body = req.body;
+        // Aggiorna i documenti con gli _id specificati
+        await AttivitaLavorativaDb.updateMany(
+            { _id: { $in: body.idAttivita } },
+            { $set: { dataInizioEffettiva: body.dataInizioEffettiva } }
+        );
+        res.send({message: 'Attivita iniziate correttamente'});
+    } catch (e) {
+        console.error(e)
+        res.status(500).send({ message : e.message || "Error Occurred while checking attivita" })
+    }
+}
+exports.concludiAttivita = async (req,res) => {
+    try {
+        const body = req.body;
+        // Aggiorna i documenti con gli _id specificati
+        await AttivitaLavorativaDb.updateMany(
+            { _id: { $in: body.idAttivita } },
+            { $set: { dataFineEffettiva: body.dataFineEffettiva } }
+        );
+        res.send({message: 'Attivita concluse correttamente'});
+    } catch (e) {
+        console.error(e)
+        res.status(500).send({ message : e.message || "Error Occurred while checking attivita" })
+    }
+}
+
 exports.controlli = async (req, res)=>{
-    // qui effettuo tutti controlli sull'attività lavorativa e restituisco i risultati in un oggetto
-    const attivitaLavorativa = req.body.attivitaLavorativa;
-    const controlliList = [];
-    if (attivitaLavorativa) {
-        const personale = attivitaLavorativa.idDipendenti ?  await PersonaleDb.find({_id: { $in: attivitaLavorativa.idDipendenti } }) : [];
-        let aree = [];
-        console.log(attivitaLavorativa.idAree)
-        const areeAggregation = attivitaLavorativa.idAree ? await PlanimetriaDb.aggregate([
-            { $match: { 'aree.uuid': { $in: attivitaLavorativa.idAree } } },
-            { $unwind: '$aree' },
-            { $match: { 'aree.uuid': { $in: attivitaLavorativa.idAree } } },
-            { $project: { _id: 0, area: '$aree' } }
-        ]) : []
-        if (areeAggregation) {
-            aree = areeAggregation.map(item => item.area);
-        }
+    try {
+        // qui effettuo tutti controlli sull'attività lavorativa e restituisco i risultati in un oggetto
+        const attivitaLavorativa = req.body.attivitaLavorativa;
+        const controlliList = [];
+        if (attivitaLavorativa) {
+            const personale = attivitaLavorativa.idDipendenti ?  await PersonaleDb.find({_id: { $in: attivitaLavorativa.idDipendenti } }) : [];
+            let aree = [];
+            console.log(attivitaLavorativa.idAree)
+            const areeAggregation = attivitaLavorativa.idAree ? await PlanimetriaDb.aggregate([
+                { $match: { 'aree.uuid': { $in: attivitaLavorativa.idAree } } },
+                { $unwind: '$aree' },
+                { $match: { 'aree.uuid': { $in: attivitaLavorativa.idAree } } },
+                { $project: { _id: 0, area: '$aree' } }
+            ]) : []
+            if (areeAggregation) {
+                aree = areeAggregation.map(item => item.area);
+            }
 
-        // 1 - check su fattori rischio dipendenti
-        if ((attivitaLavorativa.idDipendenti && attivitaLavorativa.idDipendenti.length > 0) && (attivitaLavorativa.idAree && attivitaLavorativa.idAree.length > 0)) {
+            // 1 - check su fattori rischio dipendenti
+            if ((attivitaLavorativa.idDipendenti && attivitaLavorativa.idDipendenti.length > 0) && (attivitaLavorativa.idAree && attivitaLavorativa.idAree.length > 0)) {
 
-            // 1.1 Ciclo i dipendenti
-            for (const dip of personale) {
-                const docIdoneitaSanitaria = dip.documentazione.documenti.find(doc => doc.descrizione === 'IDONEITA\' SANITARIA');
-                if (docIdoneitaSanitaria) {
-                    const infoIdoneitaSanitaria = docIdoneitaSanitaria.infoIdoneitaSanitaria;
-                    const fattoriRischioDip = infoIdoneitaSanitaria.fattoriRischio;
-                    const fattoriRischioAree = [];
-                    console.log(aree)
-                    aree.forEach(area => {fattoriRischioAree.push(...area.fattoriRischio)});
-                    let allFounded = fattoriRischioAree.every((fattoRischioArea) => fattoriRischioDip.includes(fattoRischioArea));
-                    if (!allFounded) {
-                        const fattoriRischioMancanti = fattoriRischioAree.filter((item) => fattoriRischioDip.indexOf(item) < 0);
-                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti fattori di rischio: ' + fattoriRischioMancanti.toString(),
+                // 1.1 Ciclo i dipendenti
+                for (const dip of personale) {
+                    const docIdoneitaSanitaria = dip.documentazione.documenti.find(doc => doc.descrizione === 'IDONEITA\' SANITARIA');
+                    if (docIdoneitaSanitaria) {
+                        const infoIdoneitaSanitaria = docIdoneitaSanitaria.infoIdoneitaSanitaria;
+                        const fattoriRischioDip = infoIdoneitaSanitaria.fattoriRischio;
+                        const fattoriRischioAree = [];
+                        console.log(aree)
+                        aree.forEach(area => {fattoriRischioAree.push(...area.fattoriRischio)});
+                        let allFounded = fattoriRischioAree.every((fattoRischioArea) => fattoriRischioDip.includes(fattoRischioArea));
+                        if (!allFounded) {
+                            const fattoriRischioMancanti = fattoriRischioAree.filter((item) => fattoriRischioDip.indexOf(item) < 0);
+                            controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti fattori di rischio: ' + fattoriRischioMancanti.toString(),
+                                icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
+                        }
+                    } else {
+                        controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta il documento di idoneità sanitaria',
+                            icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
+                    }
+                }
+            } else {
+                if (!(attivitaLavorativa.idDipendenti && attivitaLavorativa.idDipendenti.length > 0)) {
+                    controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Non hai selezionato alcun dipendente per l\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
+                }
+                if (!(attivitaLavorativa.idAree && attivitaLavorativa.idAree.length > 0)) {
+                    controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Non hai selezionato alcuna area per l\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
+                }
+            }
+
+            // 2 - CHECK SU DOCUMENTAZIONE AZIENDALE, PERSONALE, E MEZZO IN SCADENZA E SCADUTA
+            const ditte = attivitaLavorativa.idAziende ?  await DittaDb.find({_id: { $in: attivitaLavorativa.idAziende } }) : [];
+            if (ditte && ditte.length > 0) {
+                for(const ditta of ditte) {
+                    if (documentazioneInScadenza(ditta)) {
+                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti in scadenza',
+                            icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'aziende/' + ditta._id});
+                    }
+                    if (documentazioneScaduta(ditta)) {
+                        controlliList.push({level: 'danger',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti scaduti',
+                            icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'aziende/' + ditta._id});
+                    }
+                }
+            } else {
+                controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Non hai selezionato alcuna ditta per l\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
+            }
+
+            if (personale && personale.length > 0) {
+                for(const dip of personale) {
+                    if (documentazioneInScadenza(dip)) {
+                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti in scadenza',
                             icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                     }
-                } else {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta il documento di idoneità sanitaria',
-                        icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
-                }
-            }
-        } else {
-            if (!(attivitaLavorativa.idDipendenti && attivitaLavorativa.idDipendenti.length > 0)) {
-                controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Non hai selezionato alcun dipendente per l\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
-            }
-            if (!(attivitaLavorativa.idAree && attivitaLavorativa.idAree.length > 0)) {
-                controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Non hai selezionato alcuna area per l\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
-            }
-        }
-
-        // 2 - CHECK SU DOCUMENTAZIONE AZIENDALE, PERSONALE, E MEZZO IN SCADENZA E SCADUTA
-        const ditte = attivitaLavorativa.idAziende ?  await DittaDb.find({_id: { $in: attivitaLavorativa.idAziende } }) : [];
-        if (ditte && ditte.length > 0) {
-            for(const ditta of ditte) {
-                if (documentazioneInScadenza(ditta)) {
-                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti in scadenza',
-                        icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'aziende/' + ditta._id});
-                }
-                if (documentazioneScaduta(ditta)) {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' presenta dei documenti scaduti',
-                        icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'aziende/' + ditta._id});
-                }
-            }
-        } else {
-            controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Non hai selezionato alcuna ditta per l\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
-        }
-
-        if (personale && personale.length > 0) {
-            for(const dip of personale) {
-                if (documentazioneInScadenza(dip)) {
-                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti in scadenza',
-                        icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
-                }
-                if (documentazioneScaduta(dip)) {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti scaduti',
-                        icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
-                }
-            }
-        }
-
-        console.log(attivitaLavorativa.idMezzi)
-        const mezzi = attivitaLavorativa.idMezzi ? await MezzoDb.find({_id: { $in: attivitaLavorativa.idMezzi } }) : [];
-        if (mezzi && mezzi.length > 0) {
-            for(const mezzo of mezzi) {
-                if (documentazioneInScadenza(mezzo)) {
-                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il mezzo ' + mezzo.anagrafica.marca + ' ' + mezzo.anagrafica.modello + ' presenta dei documenti in scadenza',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
-                }
-                if (documentazioneScaduta(mezzo)) {
-                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il mezzo ' + mezzo.anagrafica.marca + ' ' + mezzo.anagrafica.modello + ' presenta dei documenti scaduti',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
-                }
-            }
-        }
-
-        // 3 - CHECK CONTEMPORANEITA ATTIVITA LAVORATIVE DIPENDENTI
-
-        // 4 - CHECK SU CONTRATTI DI COLLABORAZIONE DEI DIPENDENTI
-        for (const dip of personale) {
-            const docUnilav = dip.documentazione.documenti.find(doc => doc.descrizione === 'UNILAV');
-            if (docUnilav) {
-                const infoUnilav = docUnilav.infoUnilav;
-                console.log(infoUnilav)
-                if (infoUnilav && infoUnilav.tipologiaContrattuale === 'DETERMINATO') {
-                    if (attivitaLavorativa.dataInizioStimata && attivitaLavorativa.dataFineStimata) {
-                        if (!checkIfAttivitaCompatibileConDateDipendente(new Date(attivitaLavorativa.dataInizioStimata),new Date(attivitaLavorativa.dataFineStimata),new Date(infoUnilav.dataInizioRapporto),new Date(infoUnilav.dataFineRapporto))) {
-                            controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta un contratto a tempo determinato ' + '( ' + formatDate(infoUnilav.dataInizioRapporto) + ' - ' + formatDate(infoUnilav.dataFineRapporto) + ')' +' che non è compatibile con le date stimate',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
-                        }
+                    if (documentazioneScaduta(dip)) {
+                        controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta dei documenti scaduti',
+                            icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                     }
                 }
+            }
 
-            } else {
-                controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta il documento UNILAV',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+            console.log(attivitaLavorativa.idMezzi)
+            const mezzi = attivitaLavorativa.idMezzi ? await MezzoDb.find({_id: { $in: attivitaLavorativa.idMezzi } }) : [];
+            if (mezzi && mezzi.length > 0) {
+                for(const mezzo of mezzi) {
+                    if (documentazioneInScadenza(mezzo)) {
+                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il mezzo ' + mezzo.anagrafica.marca + ' ' + mezzo.anagrafica.modello + ' presenta dei documenti in scadenza',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                    }
+                    if (documentazioneScaduta(mezzo)) {
+                        controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il mezzo ' + mezzo.anagrafica.marca + ' ' + mezzo.anagrafica.modello + ' presenta dei documenti scaduti',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                    }
+                }
+            }
+
+            // 3 - CHECK CONTEMPORANEITA ATTIVITA LAVORATIVE DIPENDENTI
+
+            // 4 - CHECK SU CONTRATTI DI COLLABORAZIONE DEI DIPENDENTI
+            for (const dip of personale) {
+                const docUnilav = dip.documentazione.documenti.find(doc => doc.descrizione === 'UNILAV');
+                if (docUnilav) {
+                    const infoUnilav = docUnilav.infoUnilav;
+                    console.log(infoUnilav)
+                    if (infoUnilav && infoUnilav.tipologiaContrattuale === 'DETERMINATO') {
+                        if (attivitaLavorativa.dataInizioStimata && attivitaLavorativa.dataFineStimata) {
+                            if (!checkIfAttivitaCompatibileConDateDipendente(new Date(attivitaLavorativa.dataInizioStimata),new Date(attivitaLavorativa.dataFineStimata),new Date(infoUnilav.dataInizioRapporto),new Date(infoUnilav.dataFineRapporto))) {
+                                controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' presenta un contratto a tempo determinato ' + '( ' + formatDate(infoUnilav.dataInizioRapporto) + ' - ' + formatDate(infoUnilav.dataFineRapporto) + ')' +' che non è compatibile con le date stimate',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                            }
+                        }
+                    }
+
+                } else {
+                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta il documento UNILAV',icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                }
+            }
+
+            // 5 - CHECK SU NUMERO DI DUVRI O PIANO OPERATIVO PER NUMERO AZIENDE
+            const numDitte = ditte.length;
+            if (attivitaLavorativa.titoloI) {
+                // check su DUVRI
+                if (attivitaLavorativa.obbligatorietaDuvri) {
+                    const numDocDuvri = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'DUVRI').length : 0;
+                    if (numDocDuvri < numDitte) {
+                        controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocDuvri + ' DUVRI a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                    }
+                }
+                // check su DVRs
+                const numDocDVRs = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'DVRs').length : 0;
+                if (numDocDVRs < numDitte) {
+                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocDVRs + ' DVRs a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                }
+            }
+            if (attivitaLavorativa.titoloIV) {
+                // check PSC
+                const docPSC = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.find(doc => doc.descrizione === 'PSC') : undefined;
+                if (!docPSC) {
+                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Non è stato inserito il documento PSC per l\'attivita',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                }
+                // check POS
+                const numDocPianoOperativo = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'PIANO OPERATIVO SPECIFICO').length : 0;
+                if (numDocPianoOperativo < numDitte) {
+                    controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocPianoOperativo + ' POS a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                }
+            }
+
+            // 6 - CHECK SU DATA INIZIO E FINE ATTIVITA PRESENTI
+            if (!attivitaLavorativa.dataInizioStimata || !attivitaLavorativa.dataFineStimata) {
+                controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Compilare correttamente le date stimate di inizio e fine dell\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
             }
         }
-
-        // 5 - CHECK SU NUMERO DI DUVRI O PIANO OPERATIVO PER NUMERO AZIENDE
-        const numDitte = ditte.length;
-        if (attivitaLavorativa.titoloI) {
-           const numDocPianoOperativo = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'PIANO OPERATIVO').length : 0;
-           if (numDocPianoOperativo < numDitte) {
-               controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocPianoOperativo + ' piani operativi a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
-           }
-        }
-        if (attivitaLavorativa.titoloIV) {
-            const numDocDuvri = attivitaLavorativa.documentazione && attivitaLavorativa.documentazione.documenti ? attivitaLavorativa.documentazione.documenti.filter(doc => doc.descrizione === 'DUVRI').length : 0;
-            if (numDocDuvri < numDitte) {
-                controlliList.push({level: 'warning',type: 'Documentazione',message: 'Sono stati inseriti ' + numDocDuvri + ' DUVRI a fronte di ' + numDitte + ' ditte appaltatrici',icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
-            }
-        }
-
-        // 6 - CHECK SU DATA INIZIO E FINE ATTIVITA PRESENTI
-        if (!attivitaLavorativa.dataInizioStimata || !attivitaLavorativa.dataFineStimata) {
-            controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Compilare correttamente le date stimate di inizio e fine dell\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
-        }
+        res.send(controlliList);
+    } catch (e) {
+        console.error(e)
+        res.status(500).send({ message : e.message || "Error Occurred while checking attivita" })
     }
-    res.send(controlliList);
+
 }
 
 documentazioneInScadenza = function (obj) {
