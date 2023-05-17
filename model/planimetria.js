@@ -19,6 +19,8 @@ var schema = new mongoose.Schema({
             y: {type: Number},
             width: {type: Number},
             height: {type: Number},
+            pointsArray: [[Number]],
+            drawType: String,
             attivitaLavorative: [
                 {
                     nome: {type: String},
