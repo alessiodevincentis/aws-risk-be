@@ -10,8 +10,10 @@ var schema = new mongoose.Schema({
         nessunaScadenza: {type: Boolean},
         scadenzaIndicataDocumento: {type: Boolean},
         scadenzaDaCalcolare: {type: Boolean},
-        mesiValidita: {type: Number}
-    }]
+        mesiValidita: {type: Number},
+        fattoriRischio:[String]
+    }],
+    fattoriRischio:[String]
 })
 
 const ImpostazioniDb = mongoose.model('ImpostazioniDb', schema, 'impostazioni');

@@ -1,4 +1,5 @@
 const AttivitaLavorativaDb = require('../../model/attivita-lavorativa.js');
+const ImpostazioniDb = require('../../model/impostazioni.js');
 const PersonaleDb = require('../../model/personale.js');
 const PlanimetriaDb = require('../../model/planimetria.js');
 const DittaDb = require('../../model/ditta.js');
@@ -92,7 +93,6 @@ exports.controlli = async (req, res)=>{
         if (attivitaLavorativa) {
             const personale = attivitaLavorativa.idDipendenti ?  await PersonaleDb.find({_id: { $in: attivitaLavorativa.idDipendenti } }) : [];
             let aree = [];
-            console.log(attivitaLavorativa.idAree)
             const areeAggregation = attivitaLavorativa.idAree ? await PlanimetriaDb.aggregate([
                 { $match: { 'aree.uuid': { $in: attivitaLavorativa.idAree } } },
                 { $unwind: '$aree' },
@@ -232,6 +232,21 @@ exports.controlli = async (req, res)=>{
             if (!attivitaLavorativa.dataInizioStimata || !attivitaLavorativa.dataFineStimata) {
                 controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Compilare correttamente le date stimate di inizio e fine dell\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
             }
+
+            // 7 - CHECK SU OBBLIGATORIETA TIPO DOCUMENTI IN BASE AI FATTORI DI RISCHIO DELLE AREE
+            if (aree) {
+                let fattoriRischioAree = [];
+                aree.forEach(area => {fattoriRischioAree.push(...area.fattoriRischio)});
+                for (const fattoreRischioArea of fattoriRischioAree) {
+                    const tipiDocumentiObbligatoriByFattoreRischio = await getTipiDocumentiObbligatoriByFattoreRischio(fattoreRischioArea);
+                    if (tipiDocumentiObbligatoriByFattoreRischio && tipiDocumentiObbligatoriByFattoreRischio.length > 0) {
+                        checkTipoDocumentiObbligatoriPersonale(personale,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischioArea);
+                        checkTipoDocumentiObbligatoriMezzi(mezzi,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischioArea);
+                        checkTipoDocumentiObbligatoriDitte(ditte,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischioArea);
+                        // checkTipoDocumentiObbligatoriLavoratoriAutonomi(); // TODO
+                    }
+                }
+            }
         }
         res.send(controlliList);
     } catch (e) {
@@ -239,6 +254,72 @@ exports.controlli = async (req, res)=>{
         res.status(500).send({ message : e.message || "Error Occurred while checking attivita" })
     }
 
+}
+
+function checkTipoDocumentiObbligatoriPersonale(personale,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio) {
+    if (personale && personale.length > 0) {
+        personale.forEach(dip => {
+            const documentiDipendente = dip.documentazione && dip.documentazione.documenti ? dip.documentazione.documenti : [];
+            const documentiObbligatoriMancanti = getDocumentiObbligatoriMancanti(documentiDipendente,tipiDocumentiObbligatoriByFattoreRischio,'PERSONALE');
+            if (documentiObbligatoriMancanti && documentiObbligatoriMancanti.length > 0) {
+                controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti documenti obbligatori ' + documentiObbligatoriMancanti.map(doc => doc.descrizione) + ' per il fattore di rischio ' + fattoreRischio,icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+            }
+        })
+    }
+}
+function checkTipoDocumentiObbligatoriMezzi(mezzi,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio) {
+    if (mezzi && mezzi.length > 0) {
+        mezzi.forEach(mezzo => {
+            const documentiMezzo = mezzo.documentazione && mezzo.documentazione.documenti ? mezzo.documentazione.documenti : [];
+            const documentiObbligatoriMancanti = getDocumentiObbligatoriMancanti(documentiMezzo,tipiDocumentiObbligatoriByFattoreRischio,'MEZZO');
+            if (documentiObbligatoriMancanti && documentiObbligatoriMancanti.length > 0) {
+                controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il mezzo ' + mezzo.anagrafica.marca + ' ' + mezzo.anagrafica.modello + ' non presenta i seguenti documenti obbligatori ' + documentiObbligatoriMancanti.map(doc => doc.descrizione) + ' per il fattore di rischio ' + fattoreRischio,icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+            }
+        })
+    }
+}
+
+function checkTipoDocumentiObbligatoriDitte(ditte,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio) {
+    if (ditte && ditte.length > 0) {
+        ditte.forEach(ditta => {
+            const documentiDitta = ditta.documentazione && ditta.documentazione.documenti ? ditta.documentazione.documenti : [];
+            const documentiObbligatoriMancanti = getDocumentiObbligatoriMancanti(documentiDitta,tipiDocumentiObbligatoriByFattoreRischio,'AZIENDA');
+            if (documentiObbligatoriMancanti && documentiObbligatoriMancanti.length > 0) {
+                controlliList.push({level: 'danger',type: 'Documentazione',message: 'La ditta ' + ditta.anagrafica.denominazione + ' non presenta i seguenti documenti obbligatori ' + documentiObbligatoriMancanti.map(doc => doc.descrizione) + ' per il fattore di rischio ' + fattoreRischio,icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+            }
+        })
+    }
+}
+
+function getDocumentiObbligatoriMancanti(documentiToCheck,tipiDocumentiObbligatoriByFattoreRischio,competenza) {
+    return tipiDocumentiObbligatoriByFattoreRischio.filter(tipoDoc =>tipoDoc.competenza === competenza && !documentiToCheck.map(doc => doc.idTipoDocumento.toString()).includes(tipoDoc._id.toString()))
+}
+
+async function getTipiDocumentiObbligatoriByFattoreRischio(fattoreRischio) {
+    const result = await ImpostazioniDb.aggregate([
+        {$match: {
+                'tipiDocumento.fattoriRischio': {
+                    $in: [fattoreRischio]
+                }
+        }},
+        {
+            $project: {
+                tipiDocumento: {
+                    $filter: {
+                        input: '$tipiDocumento',
+                        as: 'tipo',
+                        cond: {
+                            $setIsSubset: [[fattoreRischio], '$$tipo.fattoriRischio']
+                        }
+                    }
+                }
+            }
+        }
+    ]);
+    if (result && result[0] && result[0].tipiDocumento) {
+        return result[0].tipiDocumento;
+    }
+    return [];
 }
 
 documentazioneInScadenza = function (obj) {
