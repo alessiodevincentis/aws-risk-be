@@ -15,6 +15,7 @@ const loginController = require('../controller/login/login-controller.js');
 const mezzoController = require('../controller/mezzo/mezzo-controller.js');
 const personaleController = require('../controller/personale/personale-controller.js');
 const utenteController = require('../controller/utente/utente-controller.js');
+const lavoratoreAutonomoController = require('../controller/lavoratore_autonomo/lavoratore-autonomo-controller.js');
 
 
 // API
@@ -59,6 +60,12 @@ route.post('/api/mezzo', mezzoController.insert);
 route.put('/api/mezzo', mezzoController.update);
 route.get('/api/mezzo', mezzoController.find);
 route.delete('/api/mezzo', mezzoController.delete);
+
+// LAV AUTONOMO
+route.post('/api/lavoratoreAutonomo', lavoratoreAutonomoController.insert);
+route.put('/api/lavoratoreAutonomo', lavoratoreAutonomoController.update);
+route.get('/api/lavoratoreAutonomo', lavoratoreAutonomoController.find);
+route.delete('/api/lavoratoreAutonomo', lavoratoreAutonomoController.delete);
 
 // PERSONALE
 route.post('/api/personale', personaleController.insert);
