@@ -7,42 +7,26 @@ const MezzoDb = require('../../model/mezzo.js');
 
 // retrieve and return all attivita
 exports.find = (req, res)=>{
-    let queryFilter = undefined;
+    let queryFilter = {$and: []};
     if (req.query.dataAttivita) {
-        queryFilter = {
-            $or: [
-                {
-                    $and: [
-                        { dataInizioEffettiva: { $exists: true, $lte: req.query.dataAttivita } },
-                        { dataFineStimata: { $gte: req.query.dataAttivita } },
-                        { dataFineEffettiva: { $exists: false} }
-                    ]
-                },
-                {
-                    $and: [
-                        { dataFineEffettiva: { $exists: true, $gte: req.query.dataAttivita } },
-                        { dataInizioStimata: { $lte: req.query.dataAttivita } },
-                        { dataInizioEffettiva: { $exists: false} }
-                    ]
-                },
-                {
-                    $and: [
-                        { dataInizioEffettiva: { $exists: true, $lte: req.query.dataAttivita } },
-                        { dataFineEffettiva: { $exists: true, $gte: req.query.dataAttivita } }
-                    ]
-                },
-                {
-                    $and: [
-                        { dataInizioEffettiva: { $exists: false} },
-                        { dataFineEffettiva: { $exists: false} },
-                        { dataInizioStimata: { $lte: req.query.dataAttivita } },
-                        { dataFineStimata: { $gte: req.query.dataAttivita } }
-                    ]
-                }
-            ]
-        }
+        addFilterDataAttivita(queryFilter,req);
     }
-    AttivitaLavorativaDb.find(queryFilter)
+    if (req.query.titoloIV) {
+        addFilterTitoloIV(queryFilter);
+    }
+    if (req.query.titoloI) {
+        addFilterTitoloI(queryFilter);
+    }
+    if (req.query.idAppaltatori && req.query.idAppaltatori.split(',').length > 0) {
+        addFilterAppaltatori(queryFilter,req.query.idAppaltatori.split(','));
+    }
+    if (req.query.idMezzi && req.query.idMezzi.split(',').length > 0) {
+        addFilterMezzi(queryFilter,req.query.idMezzi.split(','));
+    }
+    if (req.query.idDipendenti && req.query.idDipendenti.split(',').length > 0) {
+        addFilterDipendenti(queryFilter,req.query.idDipendenti.split(','));
+    }
+    AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined)
         .then(attivita => {
             res.send(attivita)
         })
@@ -51,6 +35,54 @@ exports.find = (req, res)=>{
         })
 
 
+}
+function addFilterMezzi(queryFilter,idMezzi) {
+    queryFilter.$and.push({idMezzi: {$in: idMezzi}})
+}
+function addFilterDipendenti(queryFilter,idDipendenti) {
+    queryFilter.$and.push({idDipendenti: {$in: idDipendenti}})
+}
+function addFilterAppaltatori(queryFilter,idAppaltatori) {
+    queryFilter.$and.push({idAziende: {$in: idAppaltatori}})
+}
+function addFilterTitoloI(queryFilter) {
+    queryFilter.$and.push({titoloI: true})
+}
+function addFilterTitoloIV(queryFilter) {
+    queryFilter.$and.push({titoloIV: true})
+}
+
+function addFilterDataAttivita(queryFilter,req) {
+    queryFilter.$and.push({$or: [
+            {
+                $and: [
+                    { dataInizioEffettiva: { $exists: true, $lte: req.query.dataAttivita } },
+                    { dataFineStimata: { $gte: req.query.dataAttivita } },
+                    { dataFineEffettiva: { $exists: false} }
+                ]
+            },
+            {
+                $and: [
+                    { dataFineEffettiva: { $exists: true, $gte: req.query.dataAttivita } },
+                    { dataInizioStimata: { $lte: req.query.dataAttivita } },
+                    { dataInizioEffettiva: { $exists: false} }
+                ]
+            },
+            {
+                $and: [
+                    { dataInizioEffettiva: { $exists: true, $lte: req.query.dataAttivita } },
+                    { dataFineEffettiva: { $exists: true, $gte: req.query.dataAttivita } }
+                ]
+            },
+            {
+                $and: [
+                    { dataInizioEffettiva: { $exists: false} },
+                    { dataFineEffettiva: { $exists: false} },
+                    { dataInizioStimata: { $lte: req.query.dataAttivita } },
+                    { dataFineStimata: { $gte: req.query.dataAttivita } }
+                ]
+            }
+        ]})
 }
 
 exports.insert = (req, res)=>{
