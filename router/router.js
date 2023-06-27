@@ -14,6 +14,7 @@ const attivitaLavorativaController = require('../controller/attivita-lavorativa/
 const loginController = require('../controller/login/login-controller.js');
 const mezzoController = require('../controller/mezzo/mezzo-controller.js');
 const personaleController = require('../controller/personale/personale-controller.js');
+const utenteController = require('../controller/utente/utente-controller.js');
 
 
 // API
@@ -64,6 +65,12 @@ route.post('/api/personale', personaleController.insert);
 route.put('/api/personale', personaleController.update);
 route.get('/api/personale', personaleController.find);
 route.delete('/api/personale', personaleController.delete);
+
+// UTENTE
+route.post('/api/utente', utenteController.insert);
+route.put('/api/utente', utenteController.update);
+route.get('/api/utente', utenteController.find);
+route.delete('/api/utente', utenteController.delete);
 
 // DOCUMENTO
 // Route for file upload

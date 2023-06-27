@@ -15,9 +15,9 @@ exports.auth = async (req, res)=>{
     }
     // Generazione del token di autenticazione
     const token = jwt.sign(
-        { username: user.username, roles: user.roles },
+        { username: user.username, roles: user.roles, superAdmin: user.superAdmin },
         'your-secret-key'
     );
     // Invio della risposta con il token
-    res.json({ token: token, username: user.username });
+    res.json({ token: token, username: user.username,superAdmin: user.superAdmin });
 }
