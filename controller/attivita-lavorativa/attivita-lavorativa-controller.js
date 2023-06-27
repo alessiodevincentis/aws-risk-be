@@ -8,6 +8,40 @@ const MezzoDb = require('../../model/mezzo.js');
 // retrieve and return all attivita
 exports.find = (req, res)=>{
     let queryFilter = undefined;
+    if (req.query.dataAttivita) {
+        queryFilter = {
+            $or: [
+                {
+                    $and: [
+                        { dataInizioEffettiva: { $exists: true, $lte: req.query.dataAttivita } },
+                        { dataFineStimata: { $gte: req.query.dataAttivita } },
+                        { dataFineEffettiva: { $exists: false} }
+                    ]
+                },
+                {
+                    $and: [
+                        { dataFineEffettiva: { $exists: true, $gte: req.query.dataAttivita } },
+                        { dataInizioStimata: { $lte: req.query.dataAttivita } },
+                        { dataInizioEffettiva: { $exists: false} }
+                    ]
+                },
+                {
+                    $and: [
+                        { dataInizioEffettiva: { $exists: true, $lte: req.query.dataAttivita } },
+                        { dataFineEffettiva: { $exists: true, $gte: req.query.dataAttivita } }
+                    ]
+                },
+                {
+                    $and: [
+                        { dataInizioEffettiva: { $exists: false} },
+                        { dataFineEffettiva: { $exists: false} },
+                        { dataInizioStimata: { $lte: req.query.dataAttivita } },
+                        { dataFineStimata: { $gte: req.query.dataAttivita } }
+                    ]
+                }
+            ]
+        }
+    }
     AttivitaLavorativaDb.find(queryFilter)
         .then(attivita => {
             res.send(attivita)
