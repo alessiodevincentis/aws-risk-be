@@ -15,8 +15,7 @@ var schema = new mongoose.Schema({
             required: true
         },
         indirizzo : {
-            type : String,
-            required: true
+            type : String
         },
         telefono : {
             type : String

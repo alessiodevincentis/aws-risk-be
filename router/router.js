@@ -29,6 +29,8 @@ route.put('/api/ditta', dittaController.update);
 route.get('/api/ditta', dittaController.find);
 route.get('/api/ditta-by-id', dittaController.findById);
 route.delete('/api/ditta', dittaController.delete);
+const uploadLocal = multer({ dest: 'uploads/' });
+route.post('/api/ditta/import', uploadLocal.single('excelDitta'), dittaController.importFromExcel);
 
 // IMPOSTAZIONI
 route.post('/api/impostazioni', impostazioniController.save);
