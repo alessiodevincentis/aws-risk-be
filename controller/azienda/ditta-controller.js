@@ -95,7 +95,7 @@ exports.importFromExcel = async (req, res)=>{
 
 async function createAziendaFromWorksheet(datiImpresaWorksheet,responsabiliAddettiWorksheet) {
     const ditta = {anagrafica: xlsx.utils.sheet_to_json(datiImpresaWorksheet)[0]};
-    ditta.responsabiliAddetti = createResponsabiliAddettiFromWorksheet(responsabiliAddettiWorksheet);
+    //ditta.responsabiliAddetti = createResponsabiliAddettiFromWorksheet(responsabiliAddettiWorksheet);
     const result = await DittaDb.create(ditta);
     return result._doc._id;
 }
@@ -137,18 +137,22 @@ async function createMezziFromWorksheet(worksheet,idAzienda) {
     if (mezziData) {
         const mezziToSave = mezziData.map(mezzo => {
             mezzo.idAzienda = idAzienda;
-            const dataScadenzaRCAConverted = xlsx.SSF.parse_date_code(mezzo.dataScadenzaRCA);
-            const dataScadenzaRCA = new Date();
-            dataScadenzaRCA.setFullYear(dataScadenzaRCAConverted.y);
-            dataScadenzaRCA.setMonth(dataScadenzaRCAConverted.m - 1);
-            dataScadenzaRCA.setDate(dataScadenzaRCAConverted.d);
-            mezzo.dataScadenzaRCA = dataScadenzaRCA;
-            const dataScadenzaRevisioneConverted = xlsx.SSF.parse_date_code(mezzo.dataScadenzaRevisione);
-            const dataScadenzaRevisione = new Date();
-            dataScadenzaRevisione.setFullYear(dataScadenzaRevisioneConverted.y);
-            dataScadenzaRevisione.setMonth(dataScadenzaRevisioneConverted.m - 1);
-            dataScadenzaRevisione.setDate(dataScadenzaRevisioneConverted.d);
-            mezzo.dataScadenzaRevisione = dataScadenzaRevisione;
+            if (mezzo.dataScadenzaRCA) {
+                const dataScadenzaRCAConverted = xlsx.SSF.parse_date_code(mezzo.dataScadenzaRCA);
+                const dataScadenzaRCA = new Date();
+                dataScadenzaRCA.setFullYear(dataScadenzaRCAConverted.y);
+                dataScadenzaRCA.setMonth(dataScadenzaRCAConverted.m - 1);
+                dataScadenzaRCA.setDate(dataScadenzaRCAConverted.d);
+                mezzo.dataScadenzaRCA = dataScadenzaRCA;
+            }
+            if (mezzo.dataScadenzaRevisione) {
+                const dataScadenzaRevisioneConverted = xlsx.SSF.parse_date_code(mezzo.dataScadenzaRevisione);
+                const dataScadenzaRevisione = new Date();
+                dataScadenzaRevisione.setFullYear(dataScadenzaRevisioneConverted.y);
+                dataScadenzaRevisione.setMonth(dataScadenzaRevisioneConverted.m - 1);
+                dataScadenzaRevisione.setDate(dataScadenzaRevisioneConverted.d);
+                mezzo.dataScadenzaRevisione = dataScadenzaRevisione;
+            }
             return {
                 anagrafica: {...mezzo}
             }
