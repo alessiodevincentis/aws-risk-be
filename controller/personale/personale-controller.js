@@ -15,6 +15,9 @@ exports.find = (req, res)=>{
     if (req.query.fattoriRischio && req.query.fattoriRischio.split(',').length > 0) {
         addFilterFattoriRischio(queryFilter,req.query.fattoriRischio.split(','));
     }
+    if (req.query.note) {
+        addFilterNote(queryFilter,req.query.note);
+    }
     PersonaleDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined)
         .then(personale => {
             res.send(personale)
@@ -35,6 +38,9 @@ function addFilterDitte(queryFilter,idDitte) {
 }
 function addFilterFattoriRischio(queryFilter,fattoriRischio) {
     queryFilter.$and.push({"documentazione.documenti.infoIdoneitaSanitaria.fattoriRischio": {$in: fattoriRischio}})
+}
+function addFilterNote(queryFilter,note) {
+    queryFilter.$and.push({"anagrafica.note": {$regex: note, $options: 'i'}})
 }
 
 exports.insert = (req, res)=>{

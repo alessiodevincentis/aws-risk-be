@@ -18,6 +18,10 @@ exports.find = (req, res)=>{
         queryFilter = queryFilter ? queryFilter : {};
         queryFilter['anagrafica.indirizzo'] = {$regex:req.query.indirizzo,$options: 'i'}
     }
+    if (req.query.note) {
+        queryFilter = queryFilter ? queryFilter : {};
+        queryFilter['anagrafica.note'] = {$regex:req.query.note,$options: 'i'}
+    }
     if (!req.query.mostraArchiviate) {
         queryFilter = queryFilter ? queryFilter : {};
         queryFilter['$and'] = [{$or: [{dataArchiviazione:{$eq:null}},{dataArchiviazione: {$exists: false}}]}]
@@ -95,7 +99,7 @@ exports.importFromExcel = async (req, res)=>{
 
 async function createAziendaFromWorksheet(datiImpresaWorksheet,responsabiliAddettiWorksheet) {
     const ditta = {anagrafica: xlsx.utils.sheet_to_json(datiImpresaWorksheet)[0]};
-    //ditta.responsabiliAddetti = createResponsabiliAddettiFromWorksheet(responsabiliAddettiWorksheet);
+    ditta.responsabiliAddetti = createResponsabiliAddettiFromWorksheet(responsabiliAddettiWorksheet);
     const result = await DittaDb.create(ditta);
     return result._doc._id;
 }

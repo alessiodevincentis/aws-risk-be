@@ -28,7 +28,8 @@ var schema = new mongoose.Schema({
                 ateco: {type: String},
                 attivitaEsercitata: {type: String}
             }
-        ]
+        ],
+        note: String
     },
     responsabiliAddetti: {
         datoreLavoro: {
