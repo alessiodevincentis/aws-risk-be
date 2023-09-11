@@ -11,6 +11,12 @@ exports.find = (req, res)=>{
     if (req.query.dataAttivita) {
         addFilterDataAttivita(queryFilter,req);
     }
+    if (req.query.dataInizioAttivita) {
+        addFilterDataInizioAttivita(queryFilter,req);
+    }
+    if (req.query.dataFineAttivita) {
+        addFilterDataFineAttivita(queryFilter,req);
+    }
     if (req.query.titoloIV) {
         addFilterTitoloIV(queryFilter);
     }
@@ -80,6 +86,38 @@ function addFilterDataAttivita(queryFilter,req) {
                     { dataFineEffettiva: { $exists: false} },
                     { dataInizioStimata: { $lte: req.query.dataAttivita } },
                     { dataFineStimata: { $gte: req.query.dataAttivita } }
+                ]
+            }
+        ]})
+}
+
+function addFilterDataInizioAttivita(queryFilter,req) {
+    queryFilter.$and.push({$or: [
+            {
+                $and: [
+                    { dataInizioEffettiva: { $exists: true, $gte: req.query.dataInizioAttivita } }
+                ]
+            },
+            {
+                $and: [
+                    { dataInizioStimata: { $gte: req.query.dataInizioAttivita } },
+                    { dataInizioEffettiva: { $exists: false} }
+                ]
+            }
+        ]})
+}
+
+function addFilterDataFineAttivita(queryFilter,req) {
+    queryFilter.$and.push({$or: [
+            {
+                $and: [
+                    { dataFineEffettiva: { $exists: true, $lte: req.query.dataFineAttivita } }
+                ]
+            },
+            {
+                $and: [
+                    { dataFineStimata: { $lte: req.query.dataFineAttivita } },
+                    { dataFineEffettiva: { $exists: false} }
                 ]
             }
         ]})
