@@ -6,6 +6,9 @@ var schema = new mongoose.Schema({
     dataGenerazione: {type: Date},
     idStorage: {
         type: mongoose.Schema.Types.ObjectId
+    },
+    idStoragePdf: {
+        type: mongoose.Schema.Types.ObjectId
     }
 });
 
