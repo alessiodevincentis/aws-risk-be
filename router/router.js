@@ -15,6 +15,7 @@ const loginController = require('../controller/login/login-controller.js');
 const mezzoController = require('../controller/mezzo/mezzo-controller.js');
 const personaleController = require('../controller/personale/personale-controller.js');
 const utenteController = require('../controller/utente/utente-controller.js');
+const reportController = require('../controller/report/report-controller.js');
 const lavoratoreAutonomoController = require('../controller/lavoratore_autonomo/lavoratore-autonomo-controller.js');
 
 
@@ -80,6 +81,10 @@ route.post('/api/utente', utenteController.insert);
 route.put('/api/utente', utenteController.update);
 route.get('/api/utente', utenteController.find);
 route.delete('/api/utente', utenteController.delete);
+
+// REPORT
+route.post('/api/report', reportController.insert);
+route.get('/api/report', reportController.find);
 
 // DOCUMENTO
 // Route for file upload
