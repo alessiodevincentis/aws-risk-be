@@ -38,7 +38,107 @@ async function createWorkBook(bodyRequest) {
     switch (tipologiaReport) {
         case 'REP-DITTA':
             return createWorkBookDitta(bodyRequest);
+        case 'REP-ATTIVITA':
+            return createWorkBookAttivita(bodyRequest);
     }
+}
+
+async function createWorkBookAttivita(bodyRequest) {
+    const workbook = new ExcelJS.Workbook();
+    const attivitaResponse = await axios.get('http://localhost:8080/api/attivita',{params: getParamsQueryAttivita(bodyRequest)});
+    const ditteResponse = await axios.get('http://localhost:8080/api/ditta');
+    const planimetrieResponse = await axios.get('http://localhost:8080/api/planimetria');
+    const dipResponse = await axios.get('http://localhost:8080/api/personale',{params: {idDitte: bodyRequest && bodyRequest.idAppaltatori ? bodyRequest.idAppaltatori.join(',') : undefined}});
+    const mezziResponse = await axios.get('http://localhost:8080/api/mezzo',{params: {idDitte: bodyRequest && bodyRequest.idAppaltatori ? bodyRequest.idAppaltatori.join(',') : undefined}});
+    const attivita = attivitaResponse && attivitaResponse.data ? attivitaResponse.data : [];
+    const worksheet = workbook.addWorksheet('Attività programmate');
+    let rowData = ['Nome','Descrizione','Titolo','Data inizio stimata','Data fine stimata','Data inizio effettiva','Data fine effettiva','Aree','Appaltatori','Lavoratori','Mezzi'];
+    const tipiDocumentoAttivitaImpostazioni = await getTipiDocumentoFromImpostazioni('ATTIVITA LAVORATIVA');
+    if (tipiDocumentoAttivitaImpostazioni) {
+        rowData.push(...tipiDocumentoAttivitaImpostazioni.map(tipoDoc => tipoDoc.descrizione));
+    }
+    const headerAttivitaRow = worksheet.addRow(rowData);
+    attivita.forEach(function (att, i) {
+        const rowAttivita = worksheet.addRow([att.nome,att.descrizione,att.titoloI ? 'TITOLO I' : 'TITOLO IV',
+            att.dataInizioStimata ? moment(att.dataInizioStimata).format('DD/MM/YYYY') : '-',
+            att.dataFineStimata ? moment(att.dataFineStimata).format('DD/MM/YYYY') : '-',
+            att.dataInizioEffettiva ? moment(att.dataInizioEffettiva).format('DD/MM/YYYY') : '-',
+            att.dataFineEffettiva ? moment(att.dataFineEffettiva).format('DD/MM/YYYY') : '-',
+            getNomiAreeAttivita(att,planimetrieResponse && planimetrieResponse.data ? planimetrieResponse.data : []),
+            getNomiDitteAttivita(att,ditteResponse && ditteResponse.data ? ditteResponse.data : []),
+            getNomiLavoratoriAttivita(att,dipResponse && dipResponse.data ? dipResponse.data : []),
+            getNomiMezziAttivita(att,mezziResponse && mezziResponse.data ? mezziResponse.data : [])]);
+        tipiDocumentoAttivitaImpostazioni.forEach(function (tipoDoc, i) {
+            const cellDoc = rowAttivita.getCell(i +11);
+            const documentoAtt = att.documentazione ? att.documentazione.documenti.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString()) : undefined;
+            scriviScadenzaDocumento(documentoAtt,cellDoc)
+        });
+    })
+    const excelFilePath = 'uploads/'+ bodyRequest.tipologia +'-'+ '-' + (new Date().getTime()) + '.xlsx';
+    await workbook.xlsx.writeFile(excelFilePath);
+    console.log(`File Excel generato con successo: ${excelFilePath}`);
+    return excelFilePath;
+}
+
+function getNomiAreeAttivita(att,planimetrie) {
+    if (att.idAree && att.idAree.length > 0) {
+        let aree = [];
+        if (planimetrie) {
+            planimetrie.forEach(plan => aree.push(...(plan.aree ? plan.aree : [])))
+        }
+        return aree.filter(area => att.idAree.includes(area.uuid)).map(area => area.nome).join(',')
+    }
+    return '-';
+}
+
+function getNomiDitteAttivita(att,ditte) {
+    if (att.idAziende && att.idAziende.length > 0) {
+        return ditte.filter(ditta => att.idAziende.includes(ditta._id)).map(ditta => ditta.anagrafica.denominazione).join(',')
+    }
+    return '-';
+}
+function getNomiLavoratoriAttivita(att,lavoratori) {
+    if (att.idDipendenti && att.idDipendenti.length > 0) {
+        return lavoratori.filter(lav => att.idDipendenti.includes(lav._id)).map(lav => lav.anagrafica.cognome + ' ' + lav.anagrafica.nome).join(',')
+    }
+    return '-';
+}
+
+function getNomiMezziAttivita(att,mezzi) {
+    if (att.idMezzi && att.idMezzi.length > 0) {
+        return mezzi.filter(mezzo => att.idMezzi.includes(mezzo._id)).map(mezzo => mezzo.anagrafica.categoria + ' ' + mezzo.anagrafica.marca + ' ' +mezzo.anagrafica.modello).join(',')
+    }
+    return '-';
+}
+
+function getParamsQueryAttivita(bodyRequest) {
+    const filtroAttivita = bodyRequest.filtroAttivita;
+    let queryParameters = {};
+    if (filtroAttivita && filtroAttivita.dataAttivita) {
+        queryParameters.dataAttivita = filtroAttivita.dataAttivita.toString();
+    }
+    if (filtroAttivita && filtroAttivita.dataInizioAttivita) {
+        queryParameters.dataInizioAttivita = filtroAttivita.dataInizioAttivita.toString();
+    }
+    if (filtroAttivita && filtroAttivita.dataFineAttivita) {
+        queryParameters.dataFineAttivita = filtroAttivita.dataFineAttivita.toString()
+    }
+    if (filtroAttivita && filtroAttivita.titoloI) {
+        queryParameters.titoloI = filtroAttivita.titoloI;
+    }
+    if (filtroAttivita && filtroAttivita.titoloIV) {
+        queryParameters.titoloIV = filtroAttivita.titoloIV;
+    }
+    if (filtroAttivita && filtroAttivita.idAppaltatori && filtroAttivita.idAppaltatori.length > 0) {
+        queryParameters.idAppaltatori = filtroAttivita.idAppaltatori.toString();
+    }
+    if (filtroAttivita && filtroAttivita.idMezzi && filtroAttivita.idMezzi.length > 0) {
+        queryParameters.idMezzi = filtroAttivita.idMezzi.toString();
+    }
+    if (filtroAttivita && filtroAttivita.idDipendenti && filtroAttivita.idDipendenti.length > 0) {
+        queryParameters.idDipendenti = filtroAttivita.idDipendenti.toString();
+    }
+    return queryParameters;
 }
 
 async function createWorkBookDitta(bodyRequest) {
