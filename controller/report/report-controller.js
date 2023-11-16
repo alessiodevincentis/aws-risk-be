@@ -7,6 +7,7 @@ const FormData = require('form-data');
 const PDFDocument = require('pdfkit');
 const utilService = require("../../util/util-service");
 const moment = require('moment');
+const PdfPrinter = require('pdfmake');
 
 // retrieve and return all utente
 exports.find = (req, res)=>{
@@ -22,9 +23,9 @@ exports.find = (req, res)=>{
 exports.insert = async (req, res) => {
     try {
         const filePath = await createWorkBook(req.body);
-        //const pdfFilePath = await createPdfFileFromExcel(filePath);
+        const pdfFilePath = undefined//await createPdfFileFromExcel(filePath);
         const response = await uploadFileToDb(filePath);
-        const responsePdf = undefined //await uploadFileToDb(pdfFilePath);
+        const responsePdf = undefined//await uploadFileToDb(pdfFilePath);
         await createReportDb(response,responsePdf,req.body);
         res.send({status: "ok"});
     } catch (err) {
@@ -531,18 +532,32 @@ function addTitleDitta(worksheet,ditta){
 }
 
 async function createPdfFileFromExcel(filePath) {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const worksheet = workbook.getWorksheet(1);
-    const pdfDoc = new PDFDocument();
     const pdfFilePath = filePath.replaceAll('.xlsx','.pdf');
-    const pdfStream = fs.createWriteStream(pdfFilePath);
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            pdfDoc.text(cell.value.toString(), colNumber * 100, rowNumber * 20);
-        });
-    });
-    pdfDoc.pipe(pdfStream);
+    var fonts = {
+        Roboto: {
+            normal: 'fonts/Roboto-Regular.ttf',
+            bold: 'fonts/Roboto-Medium.ttf',
+            italics: 'fonts/Roboto-Italic.ttf',
+            bolditalics: 'fonts/Roboto-MediumItalic.ttf'
+        }
+    };
+    var printer = new PdfPrinter(fonts);
+    const pdfDefinition = {
+        pageOrientation: 'landscape',
+        content: [
+            {
+                table: {
+                    widths: ['5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%','5.5%'],
+                    body: [
+                        ['Column 1', 'Column 2', 'Column 3','Column 1', 'Column 2', 'Column 3','Column 1', 'Column 2', 'Column 3','Column 1', 'Column 2', 'Column 3','Column 1', 'Column 2', 'Column 3','Column 1', 'Column 2', 'Column 3'],
+                        ['One value goes here', 'Another one here', 'OK?','One value goes here', 'Another one here', 'OK?','One value goes here', 'Another one here', 'OK?','One value goes here', 'Another one here', 'OK?','One value goes here', 'Another one here', 'OK?','One value goes here', 'Another one here', 'OK?']
+                    ]
+                }
+            }
+        ],
+    };
+    const pdfDoc = printer.createPdfKitDocument(pdfDefinition);
+    pdfDoc.pipe(fs.createWriteStream(pdfFilePath));
     pdfDoc.end();
     return pdfFilePath;
 }
