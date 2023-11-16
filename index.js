@@ -33,3 +33,9 @@ app.use(bodyparser.json({limit: '20mb'}));
 app.use('/', require('./router/router.js'))
 
 app.listen(PORT, ()=> { console.log(`Server is running on http://localhost:${PORT}`)});
+
+process.on('unhandledRejection', (reason, p) => {
+        console.error(reason, 'Unhandled Rejection at Promise', p);
+    }).on('uncaughtException', err => {
+        console.error(err, 'Uncaught Exception thrown');
+    });

@@ -22,9 +22,9 @@ exports.find = (req, res)=>{
 exports.insert = async (req, res) => {
     try {
         const filePath = await createWorkBook(req.body);
-        const pdfFilePath = await createPdfFileFromExcel(filePath);
+        //const pdfFilePath = await createPdfFileFromExcel(filePath);
         const response = await uploadFileToDb(filePath);
-        const responsePdf = await uploadFileToDb(pdfFilePath);
+        const responsePdf = undefined //await uploadFileToDb(pdfFilePath);
         await createReportDb(response,responsePdf,req.body);
         res.send({status: "ok"});
     } catch (err) {
@@ -53,7 +53,7 @@ async function createWorkBookDitta(bodyRequest) {
     addAddettiResponsabili(worksheet,ditta);
     const tipiDocumentoMezziImpostazioni = await getTipiDocumentoFromImpostazioni('MEZZO');
     await addMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni);
-    const excelFilePath = 'uploads/'+ bodyRequest.tipologia +'-' + ditta.anagrafica.denominazione.toUpperCase() + '-' + (new Date().getTime()) + '.xlsx';
+    const excelFilePath = 'uploads/'+ bodyRequest.tipologia +'-' + ditta.anagrafica.denominazione.toUpperCase().replaceAll(/\s/g,'') + '-' + (new Date().getTime()) + '.xlsx';
     await workbook.xlsx.writeFile(excelFilePath);
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
@@ -332,7 +332,7 @@ async function uploadFileToDb(filePath) {
 
 async function createReportDb(response,responsePdf,bodyRequest) {
     return new Promise((resolve, reject) => {
-        ReportDb.create({nomeFile: response.data.file.filename,tipologia: bodyRequest.tipologia,dataGenerazione: new Date(),idStorage: response.data.file.id,idStoragePdf: responsePdf.data.file.id})
+        ReportDb.create({nomeFile: response.data.file.filename,tipologia: bodyRequest.tipologia,dataGenerazione: new Date(),idStorage: response.data.file.id,idStoragePdf: responsePdf ? responsePdf.data.file.id : undefined})
             .then(result => {
                 resolve();
             })
