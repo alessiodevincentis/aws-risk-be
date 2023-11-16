@@ -38,9 +38,28 @@ async function createWorkBook(bodyRequest) {
     switch (tipologiaReport) {
         case 'REP-DITTA':
             return createWorkBookDitta(bodyRequest);
+        case 'REP-DIPENDENTI':
+            return createWorkBookDipendenti(bodyRequest);
         case 'REP-ATTIVITA':
             return createWorkBookAttivita(bodyRequest);
     }
+}
+
+async function createWorkBookDipendenti(bodyRequest) {
+    const workbook = new ExcelJS.Workbook();
+    let ditte = undefined;
+    const ditteResponse = await axios.get('http://localhost:8080/api/ditta');
+    ditte = ditteResponse && ditteResponse.data ? ditteResponse.data : [];
+    if (bodyRequest.idDitte && bodyRequest.idDitte.length > 0) {
+        ditte = ditte.filter(ditta => bodyRequest.idDitte.includes(ditta._id));
+    }
+    const worksheet = workbook.addWorksheet('Lavoratori');
+    const tipiDocumentoDipendentiImpostazioni = await getTipiDocumentoFromImpostazioni('PERSONALE');
+    await scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpostazioni,bodyRequest);
+    const excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
+    await workbook.xlsx.writeFile(excelFilePath);
+    console.log(`File Excel generato con successo: ${excelFilePath}`);
+    return excelFilePath;
 }
 
 async function createWorkBookAttivita(bodyRequest) {
@@ -79,7 +98,6 @@ async function createWorkBookAttivita(bodyRequest) {
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
 }
-
 function getNomiAreeAttivita(att,planimetrie) {
     if (att.idAree && att.idAree.length > 0) {
         let aree = [];
@@ -90,7 +108,6 @@ function getNomiAreeAttivita(att,planimetrie) {
     }
     return '-';
 }
-
 function getNomiDitteAttivita(att,ditte) {
     if (att.idAziende && att.idAziende.length > 0) {
         return ditte.filter(ditta => att.idAziende.includes(ditta._id)).map(ditta => ditta.anagrafica.denominazione).join(',')
@@ -103,14 +120,12 @@ function getNomiLavoratoriAttivita(att,lavoratori) {
     }
     return '-';
 }
-
 function getNomiMezziAttivita(att,mezzi) {
     if (att.idMezzi && att.idMezzi.length > 0) {
         return mezzi.filter(mezzo => att.idMezzi.includes(mezzo._id)).map(mezzo => mezzo.anagrafica.categoria + ' ' + mezzo.anagrafica.marca + ' ' +mezzo.anagrafica.modello).join(',')
     }
     return '-';
 }
-
 function getParamsQueryAttivita(bodyRequest) {
     const filtroAttivita = bodyRequest.filtroAttivita;
     let queryParameters = {};
@@ -267,23 +282,24 @@ function scriviAddettiResponsabili(worksheet,ditta) {
 
 async function addDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest) {
     addTitle(worksheet,'Lavoratori');
-    await scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest);
+    await scriviDipendentiDitta(worksheet,[ditta],tipiDocumentoDipendentiImpostazioni,bodyRequest);
 }
 
-async function scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest) {
-    let rowData = ['Cognome','Nome','Codice fiscale','Tipo rapporto'];
+async function scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpostazioni,bodyRequest) {
+    let rowData = ['Cognome','Nome','Codice fiscale','Ditta','Tipo rapporto'];
     if (tipiDocumentoDipendentiImpostazioni) {
         rowData.push(...tipiDocumentoDipendentiImpostazioni.map(tipoDoc => tipoDoc.descrizione));
     }
     worksheet.addRow(rowData);
-    let responseDipendentiDitta = await axios.get('http://localhost:8080/api/personale',{params: {idDitte: ditta._id}});
+    let responseDipendentiDitta = await axios.get('http://localhost:8080/api/personale',{params: {idDitte: ditte ? ditte.map(ditta => ditta._id).join(',') : undefined}});
     responseDipendentiDitta = filtraDipendentiByFilter(responseDipendentiDitta,bodyRequest)
     if (responseDipendentiDitta && responseDipendentiDitta.data.length > 0) {
         responseDipendentiDitta.data.forEach(function (dip, i) {
-          const rowDipendente = worksheet.addRow([dip.anagrafica.cognome,dip.anagrafica.nome,dip.anagrafica.codiceFiscale]);
+          const dittaDip = ditte ? ditte.find(dit => dit._id === dip.anagrafica.idAzienda.toString()) : undefined;
+          const rowDipendente = worksheet.addRow([dip.anagrafica.cognome,dip.anagrafica.nome,dip.anagrafica.codiceFiscale, dittaDip ? dittaDip.anagrafica.denominazione : '-']);
           addTipoRapportoDip(rowDipendente,dip);
           tipiDocumentoDipendentiImpostazioni.forEach(function (tipoDoc, i) {
-              const cellDoc = rowDipendente.getCell(i +5);
+              const cellDoc = rowDipendente.getCell(i +6);
               const documentoDip = dip.documentazione ? dip.documentazione.documenti.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString()) : undefined;
               scriviScadenzaDocumento(documentoDip,cellDoc)
           });
@@ -379,7 +395,7 @@ async function scriviMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni) 
 function addTipoRapportoDip(rowDipendente,dip) {
     const documenti = dip.documentazione ? dip.documentazione.documenti : [];
     const unilav = documenti.find(doc => doc.descrizione === 'UNILAV');
-    const cellTipoRapporto = rowDipendente.getCell(4);
+    const cellTipoRapporto = rowDipendente.getCell(5);
     if (unilav) {
         const tipologiaContrattuale = unilav.infoUnilav.tipologiaContrattuale;
         if (tipologiaContrattuale === 'INDETERMINATO') {
