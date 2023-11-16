@@ -38,11 +38,30 @@ async function createWorkBook(bodyRequest) {
     switch (tipologiaReport) {
         case 'REP-DITTA':
             return createWorkBookDitta(bodyRequest);
+        case 'REP-MEZZI':
+            return createWorkBookMezzi(bodyRequest);
         case 'REP-DIPENDENTI':
             return createWorkBookDipendenti(bodyRequest);
         case 'REP-ATTIVITA':
             return createWorkBookAttivita(bodyRequest);
     }
+}
+
+async function createWorkBookMezzi(bodyRequest) {
+    const workbook = new ExcelJS.Workbook();
+    let ditte = undefined;
+    const ditteResponse = await axios.get('http://localhost:8080/api/ditta');
+    ditte = ditteResponse && ditteResponse.data ? ditteResponse.data : [];
+    if (bodyRequest.idDitte && bodyRequest.idDitte.length > 0) {
+        ditte = ditte.filter(ditta => bodyRequest.idDitte.includes(ditta._id));
+    }
+    const worksheet = workbook.addWorksheet('Mezzi');
+    const tipiDocumentoMezziImpostazioni = await getTipiDocumentoFromImpostazioni('MEZZO');
+    await scriviMezziDitta(worksheet,ditte,tipiDocumentoMezziImpostazioni);
+    const excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
+    await workbook.xlsx.writeFile(excelFilePath);
+    console.log(`File Excel generato con successo: ${excelFilePath}`);
+    return excelFilePath;
 }
 
 async function createWorkBookDipendenti(bodyRequest) {
@@ -176,7 +195,7 @@ async function createWorkBookDitta(bodyRequest) {
 
 async function addMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni) {
     addTitle(worksheet,'Mezzi');
-    await scriviMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni);
+    await scriviMezziDitta(worksheet,[ditta],tipiDocumentoMezziImpostazioni);
 }
 
 function addAddettiResponsabili(worksheet,ditta) {
@@ -373,18 +392,19 @@ function getIdTipoDocumentiNonPresenti(documenti,tipiDocumentoDipendentiNonValid
     return idTipoDocNonPresenti;
 }
 
-async function scriviMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni) {
-    let rowData = ['Categoria','Marca','Modello','Targa Matricola Serie'];
+async function scriviMezziDitta(worksheet,ditte,tipiDocumentoMezziImpostazioni) {
+    let rowData = ['Categoria','Marca','Modello','Targa Matricola Serie','Ditta'];
     if (tipiDocumentoMezziImpostazioni) {
         rowData.push(...tipiDocumentoMezziImpostazioni.map(tipoDoc => tipoDoc.descrizione));
     }
     worksheet.addRow(rowData);
-    const responseMezziDitta = await axios.get('http://localhost:8080/api/mezzo',{params: {idDitte: ditta._id}});
+    const responseMezziDitta = await axios.get('http://localhost:8080/api/mezzo',{params: {idDitte: ditte ? ditte.map(ditta => ditta._id).join(',') : undefined}});
     if (responseMezziDitta && responseMezziDitta.data.length > 0) {
         responseMezziDitta.data.forEach(function (mezzo, i) {
-            const rowMezzo = worksheet.addRow([mezzo.anagrafica.categoria,mezzo.anagrafica.marca,mezzo.anagrafica.modello,mezzo.anagrafica.targaMatricolaSerie]);
+            const dittaMezzo = ditte ? ditte.find(dit => dit._id === mezzo.anagrafica.idAzienda.toString()) : undefined;
+            const rowMezzo = worksheet.addRow([mezzo.anagrafica.categoria,mezzo.anagrafica.marca,mezzo.anagrafica.modello,mezzo.anagrafica.targaMatricolaSerie,dittaMezzo ? dittaMezzo.anagrafica.denominazione : '-']);
             tipiDocumentoMezziImpostazioni.forEach(function (tipoDoc, i) {
-                const cellDoc = rowMezzo.getCell(i +5);
+                const cellDoc = rowMezzo.getCell(i +6);
                 const documentoMezzo = mezzo.documentazione ? mezzo.documentazione.documenti.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString()) : undefined;
                 scriviScadenzaDocumento(documentoMezzo,cellDoc)
             });
