@@ -49,7 +49,7 @@ async function createWorkBookDitta(bodyRequest) {
     const tipiDocumentoDittaImpostazioni = await getTipiDocumentoFromImpostazioni('AZIENDA');
     addDocumentazioneDitta(worksheet,ditta,tipiDocumentoDittaImpostazioni);
     const tipiDocumentoDipendentiImpostazioni = await getTipiDocumentoFromImpostazioni('PERSONALE');
-    await addDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni);
+    await addDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest);
     addAddettiResponsabili(worksheet,ditta);
     const tipiDocumentoMezziImpostazioni = await getTipiDocumentoFromImpostazioni('MEZZO');
     await addMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni);
@@ -165,18 +165,19 @@ function scriviAddettiResponsabili(worksheet,ditta) {
     }
 }
 
-async function addDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni) {
+async function addDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest) {
     addTitle(worksheet,'Lavoratori');
-    await scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni);
+    await scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest);
 }
 
-async function scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni) {
+async function scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpostazioni,bodyRequest) {
     let rowData = ['Cognome','Nome','Codice fiscale','Tipo rapporto'];
     if (tipiDocumentoDipendentiImpostazioni) {
         rowData.push(...tipiDocumentoDipendentiImpostazioni.map(tipoDoc => tipoDoc.descrizione));
     }
     worksheet.addRow(rowData);
-    const responseDipendentiDitta = await axios.get('http://localhost:8080/api/personale',{params: {idDitte: ditta._id}});
+    let responseDipendentiDitta = await axios.get('http://localhost:8080/api/personale',{params: {idDitte: ditta._id}});
+    responseDipendentiDitta = filtraDipendentiByFilter(responseDipendentiDitta,bodyRequest)
     if (responseDipendentiDitta && responseDipendentiDitta.data.length > 0) {
         responseDipendentiDitta.data.forEach(function (dip, i) {
           const rowDipendente = worksheet.addRow([dip.anagrafica.cognome,dip.anagrafica.nome,dip.anagrafica.codiceFiscale]);
@@ -188,6 +189,72 @@ async function scriviDipendentiDitta(worksheet,ditta,tipiDocumentoDipendentiImpo
           });
         })
     }
+}
+
+function filtraDipendentiByFilter(responseDipendentiDitta,bodyRequest) {
+    if (responseDipendentiDitta && responseDipendentiDitta.data.length > 0) {
+        if (bodyRequest && bodyRequest.tipiDocumentoDipendentiNonValidi && bodyRequest.tipiDocumentoDipendentiNonValidi.length > 0) {
+            filtraDipendentiByTipiDocNonValidi(responseDipendentiDitta,bodyRequest);
+        }
+        if (bodyRequest && bodyRequest.tipiDocumentoDipendentiValidi && bodyRequest.tipiDocumentoDipendentiValidi.length > 0) {
+            filtraDipendentiByTipiDocValidi(responseDipendentiDitta,bodyRequest);
+        }
+        if (bodyRequest && bodyRequest.tipologiaContrattuale) {
+            filtraDipendentiByTipologiaContrattuale(responseDipendentiDitta,bodyRequest);
+        }
+    }
+    return responseDipendentiDitta;
+}
+
+function filtraDipendentiByTipologiaContrattuale(responseDipendentiDitta,bodyRequest) {
+    responseDipendentiDitta.data = responseDipendentiDitta.data.filter(dip => {
+        const docUnilav = dip.documentazione ? dip.documentazione.documenti.find(doc => doc.descrizione === 'UNILAV') : undefined;
+        if (docUnilav) {
+            if (bodyRequest.mostraTempoDeterminatoScaduti) {
+                return docUnilav.infoUnilav.tipologiaContrattuale === bodyRequest.tipologiaContrattuale && new Date().getTime() > new Date(docUnilav.infoUnilav.dataFineRapporto).getTime();
+            } else {
+                return docUnilav.infoUnilav.tipologiaContrattuale === bodyRequest.tipologiaContrattuale;
+            }
+        } else {
+            return false;
+        }
+    })
+}
+
+function filtraDipendentiByTipiDocValidi(responseDipendentiDitta,bodyRequest) {
+    responseDipendentiDitta.data = responseDipendentiDitta.data.filter(dip => {
+        if (dip.documentazione && dip.documentazione.documenti) {
+            const idDocumentiNonValidi = getIdTipoDocumentiNonValidi(dip.documentazione.documenti,bodyRequest.tipiDocumentoDipendentiValidi);
+            const idDocumentiNonPresenti = getIdTipoDocumentiNonPresenti(dip.documentazione.documenti,bodyRequest.tipiDocumentoDipendentiValidi);
+            return !(idDocumentiNonValidi && idDocumentiNonValidi.length > 0) && !(idDocumentiNonPresenti && idDocumentiNonPresenti.length > 0);
+        } else {
+            return true;
+        }
+    })
+}
+
+function filtraDipendentiByTipiDocNonValidi(responseDipendentiDitta,bodyRequest) {
+    responseDipendentiDitta.data = responseDipendentiDitta.data.filter(dip => {
+        if (dip.documentazione && dip.documentazione.documenti) {
+            const idDocumentiNonValidi = getIdTipoDocumentiNonValidi(dip.documentazione.documenti,bodyRequest.tipiDocumentoDipendentiNonValidi);
+            const idDocumentiNonPresenti = getIdTipoDocumentiNonPresenti(dip.documentazione.documenti,bodyRequest.tipiDocumentoDipendentiNonValidi);
+            return (idDocumentiNonValidi && idDocumentiNonValidi.length > 0) || (idDocumentiNonPresenti && idDocumentiNonPresenti.length > 0);
+        } else {
+            return true;
+        }
+    })
+}
+
+function getIdTipoDocumentiNonValidi(documenti,tipiDocumentoDipendentiNonValidi) {
+    const idTipiDocFilter = tipiDocumentoDipendentiNonValidi.map(tipoDoc => tipoDoc._id.toString());
+    const idTipoDocScaduti = documenti.filter(doc => idTipiDocFilter.includes(doc.idTipoDocumento) && doc.dataScadenza && new Date().getTime() > new Date(doc.dataScadenza).getTime()).map(doc => doc.idTipoDocumento);
+    return idTipoDocScaduti;
+}
+
+function getIdTipoDocumentiNonPresenti(documenti,tipiDocumentoDipendentiNonValidi) {
+    const idTipiDocDipendenti = documenti.map(doc => doc.idTipoDocumento);
+    const idTipoDocNonPresenti = tipiDocumentoDipendentiNonValidi.filter(tipoDoc => !idTipiDocDipendenti.includes(tipoDoc._id.toString())).map(tipoDoc => tipoDoc._id.toString());
+    return idTipoDocNonPresenti;
 }
 
 async function scriviMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni) {
