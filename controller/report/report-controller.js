@@ -95,7 +95,9 @@ async function createWorkBookAttivita(bodyRequest) {
     if (tipiDocumentoAttivitaImpostazioni) {
         rowData.push(...tipiDocumentoAttivitaImpostazioni.map(tipoDoc => tipoDoc.descrizione));
     }
-    const headerAttivitaRow = worksheet.addRow(rowData);
+    const rowHeader = worksheet.addRow(rowData);
+    rowHeader.fill = {pattern: 'solid',type: 'pattern',fgColor: {argb: 'f3f8ff'}}
+    rowHeader.font = {bold: true}
     attivita.forEach(function (att, i) {
         const rowAttivita = worksheet.addRow([att.nome,att.descrizione,att.titoloI ? 'TITOLO I' : 'TITOLO IV',
             att.dataInizioStimata ? moment(att.dataInizioStimata).format('DD/MM/YYYY') : '-',
@@ -204,7 +206,9 @@ function addAddettiResponsabili(worksheet,ditta) {
 }
 
 function scriviAddettiResponsabili(worksheet,ditta) {
-    worksheet.addRow(['Ruolo','Cognome','Nome','Email','Telefono'])
+    const rowHeader = worksheet.addRow(['Ruolo','Cognome','Nome','Email','Telefono']);
+    rowHeader.fill = {pattern: 'solid',type: 'pattern',fgColor: {argb: 'f3f8ff'}}
+    rowHeader.font = {bold: true}
     const responsabiliAddetti = ditta.responsabiliAddetti;
     if (responsabiliAddetti) {
         const datoreLavoro = responsabiliAddetti.datoreLavoro;
@@ -309,7 +313,9 @@ async function scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpo
     if (tipiDocumentoDipendentiImpostazioni) {
         rowData.push(...tipiDocumentoDipendentiImpostazioni.map(tipoDoc => tipoDoc.descrizione));
     }
-    worksheet.addRow(rowData);
+    const rowHeader = worksheet.addRow(rowData);
+    rowHeader.fill = {pattern: 'solid',type: 'pattern',fgColor: {argb: 'f3f8ff'}}
+    rowHeader.font = {bold: true}
     let responseDipendentiDitta = await axios.get('http://localhost:8080/api/personale',{params: {idDitte: ditte ? ditte.map(ditta => ditta._id).join(',') : undefined}});
     responseDipendentiDitta = filtraDipendentiByFilter(responseDipendentiDitta,bodyRequest)
     if (responseDipendentiDitta && responseDipendentiDitta.data.length > 0) {
@@ -397,7 +403,9 @@ async function scriviMezziDitta(worksheet,ditte,tipiDocumentoMezziImpostazioni) 
     if (tipiDocumentoMezziImpostazioni) {
         rowData.push(...tipiDocumentoMezziImpostazioni.map(tipoDoc => tipoDoc.descrizione));
     }
-    worksheet.addRow(rowData);
+    const rowHeader = worksheet.addRow(rowData);
+    rowHeader.fill = {pattern: 'solid',type: 'pattern',fgColor: {argb: 'f3f8ff'}}
+    rowHeader.font = {bold: true}
     const responseMezziDitta = await axios.get('http://localhost:8080/api/mezzo',{params: {idDitte: ditte ? ditte.map(ditta => ditta._id).join(',') : undefined}});
     if (responseMezziDitta && responseMezziDitta.data.length > 0) {
         responseMezziDitta.data.forEach(function (mezzo, i) {
@@ -475,7 +483,7 @@ function addDocumentazioneDitta(worksheet,ditta,tipiDocumentoImpostazioni){
 
 function addTitle(worksheet,title) {
     const row = worksheet.addRow([title]);
-    row.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: '007bff' }}
+    row.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: '97c1fe' }}
     row.alignment = { vertical: 'middle' };
     row.font = { bold: true, size: 12 };
     row.height = 30;
@@ -485,6 +493,8 @@ function scriviDocumentiDitta(worksheet,documentiDitta,tipiDocumentoImpostazioni
     tipiDocumentoImpostazioni.forEach(function (tipoDoc, i) {
         const documentoCaricato = documentiDitta.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString());
         const cellDescrizioneDoc = rowDescrizioneDocumenti.getCell(i +1);
+        cellDescrizioneDoc.fill = {pattern: 'solid',type: 'pattern',fgColor: {argb: 'f3f8ff'}}
+        cellDescrizioneDoc.font = {bold: true}
         cellDescrizioneDoc.value = tipoDoc.descrizione;
         const cellContenutoDoc = rowContenutiDocumenti.getCell(i +1);
         scriviScadenzaDocumento(documentoCaricato,cellContenutoDoc);
@@ -504,10 +514,10 @@ function scriviScadenzaDocumento(documentoCaricato,cella) {
 
 function addTitleDitta(worksheet,ditta){
     const row = worksheet.addRow([ditta.anagrafica.denominazione.toUpperCase()]);
-    row.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: 'ffc107' }}
+    row.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: '69a5fe' }}
     row.alignment = { vertical: 'middle' };
-    row.font = { bold: true, size: 18 };
-    row.height = 60;
+    row.font = { bold: true, size: 16 };
+    row.height = 40;
 }
 
 async function createPdfFileFromExcel(filePath) {
