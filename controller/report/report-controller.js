@@ -59,6 +59,7 @@ async function createWorkBookMezzi(bodyRequest) {
     const tipiDocumentoMezziImpostazioni = await getTipiDocumentoFromImpostazioni('MEZZO');
     await scriviMezziDitta(worksheet,ditte,tipiDocumentoMezziImpostazioni);
     const excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
+    setColumnsWidth(worksheet);
     await workbook.xlsx.writeFile(excelFilePath);
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
@@ -76,6 +77,7 @@ async function createWorkBookDipendenti(bodyRequest) {
     const tipiDocumentoDipendentiImpostazioni = await getTipiDocumentoFromImpostazioni('PERSONALE');
     await scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpostazioni,bodyRequest);
     const excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
+    setColumnsWidth(worksheet);
     await workbook.xlsx.writeFile(excelFilePath);
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
@@ -115,6 +117,7 @@ async function createWorkBookAttivita(bodyRequest) {
         });
     })
     const excelFilePath = 'uploads/'+ bodyRequest.tipologia +'-'+ '-' + (new Date().getTime()) + '.xlsx';
+    setColumnsWidth(worksheet);
     await workbook.xlsx.writeFile(excelFilePath);
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
@@ -190,9 +193,16 @@ async function createWorkBookDitta(bodyRequest) {
     const tipiDocumentoMezziImpostazioni = await getTipiDocumentoFromImpostazioni('MEZZO');
     await addMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni);
     const excelFilePath = 'uploads/'+ bodyRequest.tipologia +'-' + ditta.anagrafica.denominazione.toUpperCase().replaceAll(/\s/g,'') + '-' + (new Date().getTime()) + '.xlsx';
+    setColumnsWidth(worksheet);
     await workbook.xlsx.writeFile(excelFilePath);
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
+}
+
+function setColumnsWidth(worksheet) {
+    worksheet.columns.forEach((column, index) => {
+        column.width = 15;  // Aggiungi spazio per una maggiore leggibilità
+    });
 }
 
 async function addMezziDitta(worksheet,ditta,tipiDocumentoMezziImpostazioni) {
