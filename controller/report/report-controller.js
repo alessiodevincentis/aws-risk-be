@@ -43,6 +43,9 @@ async function createWorkBook(bodyRequest) {
             return createWorkBookMezzi(bodyRequest);
         case 'REP-DIPENDENTI':
             return createWorkBookDipendenti(bodyRequest);
+        case 'REP-DIP':
+            bodyRequest.idDipendenti = [bodyRequest.idDipendente]
+            return createWorkBookDipendenti(bodyRequest);
         case 'REP-ATTIVITA':
             return createWorkBookAttivita(bodyRequest);
     }
@@ -77,11 +80,31 @@ async function createWorkBookDipendenti(bodyRequest) {
     const worksheet = workbook.addWorksheet('Lavoratori');
     const tipiDocumentoDipendentiImpostazioni = await getTipiDocumentoFromImpostazioni('PERSONALE');
     await scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpostazioni,bodyRequest);
-    const excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
+    let excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
     setColumnsWidth(worksheet);
+    if (bodyRequest.idDipendente) { // vuol dire che mi trovo nel tipo report dip singolo
+        makeWorksheetVertical(worksheet,workbook);
+        excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (worksheet.getRow(2).getCell(1).value).replaceAll(' ','') + '-'+ (worksheet.getRow(2).getCell(2).value).replaceAll(' ','') + '-'+ (new Date().getTime()) + '.xlsx';
+    }
     await workbook.xlsx.writeFile(excelFilePath);
     console.log(`File Excel generato con successo: ${excelFilePath}`);
     return excelFilePath;
+}
+
+function makeWorksheetVertical(worksheet,workbook) {
+    const newWorksheet = workbook.addWorksheet('Dipendente');
+    const headerRow = worksheet.getRow(1);
+    const valueRow = worksheet.getRow(2);
+    headerRow.eachCell((cell,colNumber) => {
+        const newRow = newWorksheet.addRow([cell.value,valueRow.getCell(colNumber).value]);
+        const newCellHeader = newRow.getCell(1);
+        const newCellValue = newRow.getCell(2);
+        newCellHeader.fill = cell.fill;
+        newCellHeader.font = cell.font;
+        newCellValue.font = valueRow.getCell(colNumber).font;
+        newCellValue.fill = valueRow.getCell(colNumber).fill;
+    });
+    workbook.removeWorksheet(1);
 }
 
 async function createWorkBookAttivita(bodyRequest) {
