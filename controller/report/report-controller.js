@@ -114,7 +114,7 @@ async function createWorkBookAttivita(bodyRequest) {
         tipiDocumentoAttivitaImpostazioni.forEach(function (tipoDoc, i) {
             const cellDoc = rowAttivita.getCell(i +11);
             const documentoAtt = att.documentazione ? att.documentazione.documenti.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString()) : undefined;
-            scriviScadenzaDocumento(documentoAtt,cellDoc)
+            scriviScadenzaDocumento(documentoAtt,cellDoc,att.idTipiDocumentoNecessari,tipoDoc._id.toString())
         });
     })
     const excelFilePath = 'uploads/'+ bodyRequest.tipologia +'-'+ '-' + (new Date().getTime()) + '.xlsx';
@@ -337,7 +337,7 @@ async function scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpo
           tipiDocumentoDipendentiImpostazioni.forEach(function (tipoDoc, i) {
               const cellDoc = rowDipendente.getCell(i +6);
               const documentoDip = dip.documentazione ? dip.documentazione.documenti.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString()) : undefined;
-              scriviScadenzaDocumento(documentoDip,cellDoc)
+              scriviScadenzaDocumento(documentoDip,cellDoc,dip.anagrafica.idTipiDocumentoNecessari,tipoDoc._id.toString())
           });
         })
     }
@@ -433,7 +433,7 @@ async function scriviMezziDitta(worksheet,ditte,tipiDocumentoMezziImpostazioni) 
             tipiDocumentoMezziImpostazioni.forEach(function (tipoDoc, i) {
                 const cellDoc = rowMezzo.getCell(i +6);
                 const documentoMezzo = mezzo.documentazione ? mezzo.documentazione.documenti.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString()) : undefined;
-                scriviScadenzaDocumento(documentoMezzo,cellDoc)
+                scriviScadenzaDocumento(documentoMezzo,cellDoc,mezzo.anagrafica.idTipiDocumentoNecessari,tipoDoc._id.toString())
             });
         })
     }
@@ -496,7 +496,7 @@ function addDocumentazioneDitta(worksheet,ditta,tipiDocumentoImpostazioni){
     if (tipiDocumentoImpostazioni && tipiDocumentoImpostazioni.length > 0) {
         const rowDescrizioneDocumenti = worksheet.addRow(['']);
         const rowContenutiDocumenti = worksheet.addRow(['']);
-        scriviDocumentiDitta(worksheet,documentiDitta,tipiDocumentoImpostazioni,rowDescrizioneDocumenti,rowContenutiDocumenti)
+        scriviDocumentiDitta(worksheet,documentiDitta,tipiDocumentoImpostazioni,rowDescrizioneDocumenti,rowContenutiDocumenti,ditta)
     }
 }
 
@@ -508,7 +508,7 @@ function addTitle(worksheet,title) {
     row.height = 30;
 }
 
-function scriviDocumentiDitta(worksheet,documentiDitta,tipiDocumentoImpostazioni,rowDescrizioneDocumenti,rowContenutiDocumenti) {
+function scriviDocumentiDitta(worksheet,documentiDitta,tipiDocumentoImpostazioni,rowDescrizioneDocumenti,rowContenutiDocumenti,ditta) {
     tipiDocumentoImpostazioni.forEach(function (tipoDoc, i) {
         const documentoCaricato = documentiDitta.filter(doc => !doc.sostituito).find(doc => doc.idTipoDocumento === tipoDoc._id.toString());
         const cellDescrizioneDoc = rowDescrizioneDocumenti.getCell(i +1);
@@ -516,18 +516,30 @@ function scriviDocumentiDitta(worksheet,documentiDitta,tipiDocumentoImpostazioni
         cellDescrizioneDoc.font = {bold: true}
         cellDescrizioneDoc.value = tipoDoc.descrizione;
         const cellContenutoDoc = rowContenutiDocumenti.getCell(i +1);
-        scriviScadenzaDocumento(documentoCaricato,cellContenutoDoc);
+        scriviScadenzaDocumento(documentoCaricato,cellContenutoDoc,ditta.anagrafica.idTipiDocumentoNecessari,tipoDoc._id.toString());
     });
 }
 
-function scriviScadenzaDocumento(documentoCaricato,cella) {
+function scriviScadenzaDocumento(documentoCaricato,cella,idTipiDocumentoNecessari,idTipoDoc) {
     if (documentoCaricato) {
         cella.value = documentoCaricato.dataScadenza ? moment(documentoCaricato.dataScadenza).format('DD/MM/YYYY') : 'PRESENTE';
         const isDocumentoScaduto = new Date().getTime() > new Date(documentoCaricato.dataScadenza).getTime() && cella.value !== 'PRESENTE';
         cella.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: isDocumentoScaduto ? 'dc3545' : '28a745' }}
         cella.font = {color: {argb: 'ffffff'}}
     } else {
-        cella.value = 'MANCANTE';
+        if (idTipiDocumentoNecessari && idTipiDocumentoNecessari.length > 0) {
+            if (idTipiDocumentoNecessari.includes(idTipoDoc)) {
+                cella.value = 'MANCANTE';
+                cella.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: 'dc3545' }}
+                cella.font = {color: {argb: 'ffffff'}}
+            } else {
+                cella.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: 'fff2cc' }}
+                cella.value = 'N/A'
+            }
+        } else {
+            cella.fill = {type: 'pattern', pattern: 'solid', fgColor: { argb: 'fff2cc' }}
+            cella.value = 'N/A';
+        }
     }
 }
 
