@@ -29,7 +29,8 @@ var schema = new mongoose.Schema({
                 attivitaEsercitata: {type: String}
             }
         ],
-        note: String
+        note: String,
+        idTipiDocumentoNecessari: [String]
     },
     responsabiliAddetti: {
         datoreLavoro: {

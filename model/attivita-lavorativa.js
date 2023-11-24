@@ -14,6 +14,7 @@ var schema = new mongoose.Schema({
     idAziende: [String],
     idDipendenti: [String],
     idMezzi: [String],
+    idTipiDocumentoNecessari: [String],
     documentazione: {
         documenti:[{
             id: {

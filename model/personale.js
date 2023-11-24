@@ -9,7 +9,8 @@ const personaleSchema = new mongoose.Schema({
         telefono: String,
         email: String,
         idAzienda: mongoose.Schema.Types.ObjectId,
-        note: String
+        note: String,
+        idTipiDocumentoNecessari: [String]
     },
     documentazione: {
         documenti:[{
