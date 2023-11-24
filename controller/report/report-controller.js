@@ -354,8 +354,16 @@ function filtraDipendentiByFilter(responseDipendentiDitta,bodyRequest) {
         if (bodyRequest && bodyRequest.tipologiaContrattuale) {
             filtraDipendentiByTipologiaContrattuale(responseDipendentiDitta,bodyRequest);
         }
+        if (bodyRequest && bodyRequest.idDipendenti && bodyRequest.idDipendenti.length > 0) {
+            filtraDipendentiById(responseDipendentiDitta,bodyRequest);
+        }
     }
     return responseDipendentiDitta;
+}
+
+function filtraDipendentiById(responseDipendentiDitta,bodyRequest) {
+    const idDipendenti = bodyRequest.idDipendenti;
+    responseDipendentiDitta.data = responseDipendentiDitta.data.filter(dip => idDipendenti.includes(dip._id));
 }
 
 function filtraDipendentiByTipologiaContrattuale(responseDipendentiDitta,bodyRequest) {
