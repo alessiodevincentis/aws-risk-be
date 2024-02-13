@@ -82,7 +82,7 @@ async function createWorkBookDipendenti(bodyRequest) {
     await scriviDipendentiDitta(worksheet,ditte,tipiDocumentoDipendentiImpostazioni,bodyRequest);
     let excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (new Date().getTime()) + '.xlsx';
     setColumnsWidth(worksheet);
-    if (bodyRequest.idDipendente) { // vuol dire che mi trovo nel tipo report dip singolo
+    if (bodyRequest.tipologia === 'REP-DIP') { // vuol dire che mi trovo nel tipo report dip singolo
         makeWorksheetVertical(worksheet,workbook);
         excelFilePath = 'uploads/'+ bodyRequest.tipologia + '-' + (worksheet.getRow(2).getCell(1).value).replaceAll(' ','') + '-'+ (worksheet.getRow(2).getCell(2).value).replaceAll(' ','') + '-'+ (new Date().getTime()) + '.xlsx';
     }
@@ -225,7 +225,7 @@ async function createWorkBookDitta(bodyRequest) {
 
 function setColumnsWidth(worksheet) {
     worksheet.columns.forEach((column, index) => {
-        column.width = 15;  // Aggiungi spazio per una maggiore leggibilità
+        column.width = 19;  // Aggiungi spazio per una maggiore leggibilità
     });
 }
 
