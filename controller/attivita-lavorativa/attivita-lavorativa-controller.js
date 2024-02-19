@@ -7,6 +7,18 @@ const MezzoDb = require('../../model/mezzo.js');
 
 // retrieve and return all attivita
 exports.find = (req, res)=>{
+    const queryFilter = buildQueryFilterAttivita(req);
+    AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined)
+        .then(attivita => {
+            res.send(attivita)
+        })
+        .catch(err => {
+            res.status(500).send({ message : err.message || "Error Occurred while retriving attivita information" })
+        })
+
+
+}
+function buildQueryFilterAttivita(req) {
     let queryFilter = {$and: []};
     if (req.query.dataAttivita) {
         addFilterDataAttivita(queryFilter,req);
@@ -32,21 +44,19 @@ exports.find = (req, res)=>{
     if (req.query.idDipendenti && req.query.idDipendenti.split(',').length > 0) {
         addFilterDipendenti(queryFilter,req.query.idDipendenti.split(','));
     }
-    AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined)
-        .then(attivita => {
-            res.send(attivita)
-        })
-        .catch(err => {
-            res.status(500).send({ message : err.message || "Error Occurred while retriving attivita information" })
-        })
-
-
+    if (req.query.idAttivitaDaEscludere && req.query.idAttivitaDaEscludere.length > 0) {
+        addFilterAttivitaDaEscludere(queryFilter,req.query.idAttivitaDaEscludere);
+    }
+    return queryFilter;
 }
 function addFilterMezzi(queryFilter,idMezzi) {
     queryFilter.$and.push({idMezzi: {$in: idMezzi}})
 }
 function addFilterDipendenti(queryFilter,idDipendenti) {
     queryFilter.$and.push({idDipendenti: {$in: idDipendenti}})
+}
+function addFilterAttivitaDaEscludere(queryFilter,idAttivitaDaEscludere) {
+    queryFilter.$and.push({_id: {$nin: idAttivitaDaEscludere}})
 }
 function addFilterAppaltatori(queryFilter,idAppaltatori) {
     queryFilter.$and.push({idAziende: {$in: idAppaltatori}})
@@ -269,7 +279,6 @@ exports.controlli = async (req, res)=>{
                 }
             }
 
-            console.log(attivitaLavorativa.idMezzi)
             const mezzi = attivitaLavorativa.idMezzi ? await MezzoDb.find({_id: { $in: attivitaLavorativa.idMezzi } }) : [];
             if (mezzi && mezzi.length > 0) {
                 for(const mezzo of mezzi) {
@@ -282,7 +291,39 @@ exports.controlli = async (req, res)=>{
                 }
             }
 
-            // 3 - CHECK CONTEMPORANEITA ATTIVITA LAVORATIVE DIPENDENTI
+            // 3 - CHECK CONTEMPORANEITA ATTIVITA LAVORATIVE DIPENDENTI E DITTE
+            for (const dip of personale) {
+                const queryFilter = buildQueryFilterAttivita(
+                    {query:
+                            {   idDipendenti: dip._id.toString(),
+                                idAttivitaDaEscludere: [attivitaLavorativa._id.toString()]
+                            }
+                        }
+                );
+                let attivitaContemporanee = await AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined);
+                if (attivitaContemporanee && attivitaContemporanee.length > 0) {
+                    attivitaContemporanee = attivitaContemporanee.filter( attivita => filtraAttivitaStesseDate(attivita,attivitaLavorativa));
+                    for (const attivitaContemporanea of attivitaContemporanee) {
+                        controlliList.push({level: 'warning',type: 'Contemporaneità',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' per le date indicate è impegnato nella seguente attività lavorativa: ' + attivitaContemporanea.nome,icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                    }
+                }
+            }
+            for (const ditta of ditte) {
+                const queryFilter = buildQueryFilterAttivita(
+                    {query:
+                            {   idAppaltatori: ditta._id.toString(),
+                                idAttivitaDaEscludere: [attivitaLavorativa._id.toString()]
+                            }
+                    }
+                );
+                let attivitaContemporanee = await AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined);
+                if (attivitaContemporanee && attivitaContemporanee.length > 0) {
+                    attivitaContemporanee = attivitaContemporanee.filter( attivita => filtraAttivitaStesseDate(attivita,attivitaLavorativa));
+                    for (const attivitaContemporanea of attivitaContemporanee) {
+                        controlliList.push({level: 'warning',type: 'Contemporaneità',message: 'La ditta ' + ditta.anagrafica.denominazione + ' per le date indicate è impegnata nella seguente attività lavorativa: ' + attivitaContemporanea.nome,icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
+                    }
+                }
+            }
 
             // 4 - CHECK SU CONTRATTI DI COLLABORAZIONE DEI DIPENDENTI
             for (const dip of personale) {
@@ -358,6 +399,13 @@ exports.controlli = async (req, res)=>{
         res.status(500).send({ message : e.message || "Error Occurred while checking attivita" })
     }
 
+}
+
+function filtraAttivitaStesseDate(attivitaCorrente, altraAttivita) {
+    return (
+        (attivitaCorrente.dataInizioEffettiva ? new Date(attivitaCorrente.dataInizioEffettiva).getTime() : new Date(attivitaCorrente.dataInizioStimata).getTime() >= (altraAttivita.dataFineEffettiva ? new Date(altraAttivita.dataFineEffettiva).getTime() : new Date(altraAttivita.dataFineStimata).getTime()) ||
+        (attivitaCorrente.dataFineEffettiva ? new Date(attivitaCorrente.dataFineEffettiva).getTime() : new Date(attivitaCorrente.dataFineStimata).getTime() <= altraAttivita.dataInizioEffettiva ? new Date(altraAttivita.dataInizioEffettiva).getTime() : new Date(altraAttivita.dataInizioStimata).getTime())
+    ));
 }
 
 function checkTipoDocumentiObbligatoriPersonale(personale,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio) {

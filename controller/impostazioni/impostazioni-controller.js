@@ -30,7 +30,6 @@ function setTipoScadenza(tipiDocumento) {
             } else {
                 tipoDoc.tipoScadenza = 'SEMPRE VALIDO';
             }
-            console.log(tipoDoc)
         })
     }
 
