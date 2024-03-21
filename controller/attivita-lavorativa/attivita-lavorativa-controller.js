@@ -4,6 +4,7 @@ const PersonaleDb = require('../../model/personale.js');
 const PlanimetriaDb = require('../../model/planimetria.js');
 const DittaDb = require('../../model/ditta.js');
 const MezzoDb = require('../../model/mezzo.js');
+const {all} = require("axios");
 
 // retrieve and return all attivita
 exports.find = (req, res)=>{
@@ -217,21 +218,43 @@ exports.controlli = async (req, res)=>{
                 aree = areeAggregation.map(item => item.area);
             }
 
-            // 1 - check su fattori rischio dipendenti
+            // 1 - check su fattori rischio di area dipendenti
             if ((attivitaLavorativa.idDipendenti && attivitaLavorativa.idDipendenti.length > 0) && (attivitaLavorativa.idAree && attivitaLavorativa.idAree.length > 0)) {
 
-                // 1.1 Ciclo i dipendenti
                 for (const dip of personale) {
                     const docIdoneitaSanitaria = dip.documentazione.documenti.find(doc => doc.descrizione === 'IDONEITA\' SANITARIA');
                     if (docIdoneitaSanitaria) {
+                        // 1.1 Controllo su fattori di rischio non idonei, temp non idonei o ad eccezione non idonei su visita idonea
                         const infoIdoneitaSanitaria = docIdoneitaSanitaria.infoIdoneitaSanitaria;
-                        const fattoriRischioDip = infoIdoneitaSanitaria.fattoriRischio;
+                        const fattoriRischioNonIdoneiVisita = ['NON_IDONEO','NON_IDONEO_TEMP'].includes(infoIdoneitaSanitaria.esitoVisita) ? infoIdoneitaSanitaria.fattoriRischio : [];
+                        const fattoriRischioEccezioniIdoneo = ['IDONEO'].includes(infoIdoneitaSanitaria.esitoVisita) ? infoIdoneitaSanitaria.fattoriRischioAdEccezioneDiIdoneita : [];
+                        let fattoriRischioNonIdonei = [...fattoriRischioNonIdoneiVisita,...fattoriRischioEccezioniIdoneo];
                         const fattoriRischioAree = [];
-                        console.log(aree)
-                        aree.forEach(area => {fattoriRischioAree.push(...area.fattoriRischio)});
-                        let allFounded = fattoriRischioAree.every((fattoRischioArea) => fattoriRischioDip.includes(fattoRischioArea));
+                        aree.forEach(area => {
+                            if (area.fattoriRischio) {
+                                fattoriRischioAree.push(...area.fattoriRischio)
+                            }
+                        });
+                        const fattoriRischioAttivita = attivitaLavorativa.fattoriRischio ? attivitaLavorativa.fattoriRischio : [];
+                        if (fattoriRischioNonIdonei && fattoriRischioNonIdonei.length > 0) {
+                            const fattoriRischioAttivitaNonIdonei = fattoriRischioAttivita.filter(fattAtt => fattoriRischioNonIdonei.includes(fattAtt));
+                            const fattoriRischioAreeNonIdonei = fattoriRischioAree.filter(fattArea => fattoriRischioNonIdonei.includes(fattArea));
+                            if (fattoriRischioAttivitaNonIdonei && fattoriRischioAttivitaNonIdonei.length > 0) {
+                                controlliList.push({level: 'danger',type: 'Rischio attività',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non risulta idoneo per i seguenti fattori di rischio: ' + fattoriRischioAttivitaNonIdonei.toString(),
+                                    icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
+                            }
+                            if (fattoriRischioAreeNonIdonei && fattoriRischioAreeNonIdonei.length > 0) {
+                                controlliList.push({level: 'danger',type: 'Rischio area',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non risulta idoneo per i seguenti fattori di rischio: ' + fattoriRischioAreeNonIdonei.toString(),
+                                    icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
+                            }
+                        }
+
+                        // 1.2 Controllo su fattori di rischio non controllati in visita medica ideoneita sanitaria
+                        let fattoriRischioDip = ['IDONEO'].includes(infoIdoneitaSanitaria.esitoVisita) ? infoIdoneitaSanitaria.fattoriRischio : [];
+                        let fattoriRischioAreeAttivita = [...fattoriRischioAree,...fattoriRischioAttivita];
+                        let allFounded = fattoriRischioAreeAttivita.every((fattoRischio) => fattoriRischioDip.includes(fattoRischio));
                         if (!allFounded) {
-                            const fattoriRischioMancanti = fattoriRischioAree.filter((item) => fattoriRischioDip.indexOf(item) < 0);
+                            const fattoriRischioMancanti = fattoriRischioAreeAttivita.filter((item) => fattoriRischioDip.indexOf(item) < 0);
                             controlliList.push({level: 'warning',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti fattori di rischio: ' + fattoriRischioMancanti.toString(),
                                 icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning',routerLink: 'personale/' + dip.anagrafica.codiceFiscale});
                         }
@@ -291,36 +314,20 @@ exports.controlli = async (req, res)=>{
                 }
             }
 
-            // 3 - CHECK CONTEMPORANEITA ATTIVITA LAVORATIVE DIPENDENTI E DITTE
+            // 3 - CHECK CONTEMPORANEITA ATTIVITA LAVORATIVE DIPENDENTI
             for (const dip of personale) {
                 const queryFilter = buildQueryFilterAttivita(
                     {query:
                             {   idDipendenti: dip._id.toString(),
-                                idAttivitaDaEscludere: [attivitaLavorativa._id.toString()]
+                                idAttivitaDaEscludere: attivitaLavorativa._id ? [attivitaLavorativa._id.toString()] : undefined
                             }
-                        }
+                    }
                 );
                 let attivitaContemporanee = await AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined);
                 if (attivitaContemporanee && attivitaContemporanee.length > 0) {
                     attivitaContemporanee = attivitaContemporanee.filter( attivita => filtraAttivitaStesseDate(attivita,attivitaLavorativa));
                     for (const attivitaContemporanea of attivitaContemporanee) {
                         controlliList.push({level: 'warning',type: 'Contemporaneità',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' per le date indicate è impegnato nella seguente attività lavorativa: ' + attivitaContemporanea.nome,icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
-                    }
-                }
-            }
-            for (const ditta of ditte) {
-                const queryFilter = buildQueryFilterAttivita(
-                    {query:
-                            {   idAppaltatori: ditta._id.toString(),
-                                idAttivitaDaEscludere: [attivitaLavorativa._id.toString()]
-                            }
-                    }
-                );
-                let attivitaContemporanee = await AttivitaLavorativaDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined);
-                if (attivitaContemporanee && attivitaContemporanee.length > 0) {
-                    attivitaContemporanee = attivitaContemporanee.filter( attivita => filtraAttivitaStesseDate(attivita,attivitaLavorativa));
-                    for (const attivitaContemporanea of attivitaContemporanee) {
-                        controlliList.push({level: 'warning',type: 'Contemporaneità',message: 'La ditta ' + ditta.anagrafica.denominazione + ' per le date indicate è impegnata nella seguente attività lavorativa: ' + attivitaContemporanea.nome,icon: 'pi pi-exclamation-triangle',iconClass: 'p-button-warning'});
                     }
                 }
             }
@@ -378,16 +385,22 @@ exports.controlli = async (req, res)=>{
                 controlliList.push({level: 'info',type: 'Elementi incompleti',message: 'Compilare correttamente le date stimate di inizio e fine dell\'attività',icon: 'pi pi-info-circle',iconClass: 'p-button-info'});
             }
 
-            // 7 - CHECK SU OBBLIGATORIETA TIPO DOCUMENTI IN BASE AI FATTORI DI RISCHIO DELLE AREE
+            // 7 - CHECK SU OBBLIGATORIETA TIPO DOCUMENTI IN BASE AI FATTORI DI RISCHIO DELLE AREE e ATTIVITA
             if (aree) {
                 let fattoriRischioAree = [];
-                aree.forEach(area => {fattoriRischioAree.push(...area.fattoriRischio)});
-                for (const fattoreRischioArea of fattoriRischioAree) {
-                    const tipiDocumentiObbligatoriByFattoreRischio = await getTipiDocumentiObbligatoriByFattoreRischio(fattoreRischioArea);
+                aree.forEach(area => {
+                    if (area.fattoriRischio) {
+                        fattoriRischioAree.push(...area.fattoriRischio)
+                    }
+                });
+                let fattoriRischioAttivita = attivitaLavorativa.fattoriRischio ? attivitaLavorativa.fattoriRischio : [];
+                let fattoriRischioAreeAttivita = [...fattoriRischioAree,...fattoriRischioAttivita];
+                for (const fattoreRischio of fattoriRischioAreeAttivita) {
+                    const tipiDocumentiObbligatoriByFattoreRischio = await getTipiDocumentiObbligatoriByFattoreRischio(fattoreRischio);
                     if (tipiDocumentiObbligatoriByFattoreRischio && tipiDocumentiObbligatoriByFattoreRischio.length > 0) {
-                        checkTipoDocumentiObbligatoriPersonale(personale,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischioArea);
-                        checkTipoDocumentiObbligatoriMezzi(mezzi,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischioArea);
-                        checkTipoDocumentiObbligatoriDitte(ditte,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischioArea);
+                        checkTipoDocumentiObbligatoriPersonale(personale,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio);
+                        checkTipoDocumentiObbligatoriMezzi(mezzi,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio);
+                        checkTipoDocumentiObbligatoriDitte(ditte,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio);
                         // checkTipoDocumentiObbligatoriLavoratoriAutonomi(); // TODO
                     }
                 }
@@ -402,10 +415,15 @@ exports.controlli = async (req, res)=>{
 }
 
 function filtraAttivitaStesseDate(attivitaCorrente, altraAttivita) {
-    return (
-        (attivitaCorrente.dataInizioEffettiva ? new Date(attivitaCorrente.dataInizioEffettiva).getTime() : new Date(attivitaCorrente.dataInizioStimata).getTime() >= (altraAttivita.dataFineEffettiva ? new Date(altraAttivita.dataFineEffettiva).getTime() : new Date(altraAttivita.dataFineStimata).getTime()) ||
-        (attivitaCorrente.dataFineEffettiva ? new Date(attivitaCorrente.dataFineEffettiva).getTime() : new Date(attivitaCorrente.dataFineStimata).getTime() <= altraAttivita.dataInizioEffettiva ? new Date(altraAttivita.dataInizioEffettiva).getTime() : new Date(altraAttivita.dataInizioStimata).getTime())
-    ));
+    const inizioCorrente = attivitaCorrente.dataInizioEffettiva || attivitaCorrente.dataInizioStimata;
+    const fineCorrente = attivitaCorrente.dataFineEffettiva || attivitaCorrente.dataFineStimata;
+    const inizioAltra = altraAttivita.dataInizioEffettiva || altraAttivita.dataInizioStimata;
+    const fineAltra = altraAttivita.dataFineEffettiva || altraAttivita.dataFineStimata;
+
+    const sovrapposizioneInizio = new Date(inizioCorrente).getTime() < new Date(fineAltra).getTime();
+    const sovrapposizioneFine = new Date(fineCorrente).getTime() > new Date(inizioAltra).getTime();
+
+    return sovrapposizioneInizio && sovrapposizioneFine;
 }
 
 function checkTipoDocumentiObbligatoriPersonale(personale,tipiDocumentiObbligatoriByFattoreRischio,controlliList,fattoreRischio) {

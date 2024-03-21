@@ -13,7 +13,9 @@ var schema = new mongoose.Schema({
         mesiValidita: {type: Number},
         fattoriRischio:[String]
     }],
-    fattoriRischio:[String]
+    fattoriRischioArea:[String],
+    fattoriRischioAttivita:[String],
+    fattoriRischioSoggetto:[String]
 })
 
 const ImpostazioniDb = mongoose.model('ImpostazioniDb', schema, 'impostazioni');

@@ -43,6 +43,7 @@ const personaleSchema = new mongoose.Schema({
             infoIdoneitaSanitaria: {
                 mansione: {type: String},
                 fattoriRischio: [{type: String}],
+                fattoriRischioAdEccezioneDiIdoneita: [{type: String}],
                 tipologiaVisita: {type: String},
                 esitoVisita: {type: String},
                 limitazioniIdoneita: {type: String},
