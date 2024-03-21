@@ -26,6 +26,9 @@ const personaleSchema = new mongoose.Schema({
             nomeFile: {
                 type: String
             },
+            mimeType: {
+                type: String
+            },
             descrizione: {
                 type: String
             },
