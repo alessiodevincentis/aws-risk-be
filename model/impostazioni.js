@@ -11,7 +11,8 @@ var schema = new mongoose.Schema({
         scadenzaIndicataDocumento: {type: Boolean},
         scadenzaDaCalcolare: {type: Boolean},
         mesiValidita: {type: Number},
-        fattoriRischio:[String]
+        fattoriRischio:[String],
+        obbligatorio: {type: Boolean}
     }],
     fattoriRischioArea:[String],
     fattoriRischioAttivita:[String],

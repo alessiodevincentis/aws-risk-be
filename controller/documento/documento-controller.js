@@ -4,12 +4,16 @@ const DocumentoDb = require('../../model/documento.js')
 exports.get = (req, res)=>{
     DocumentoDb.find({'files_id':new mongoose.Types.ObjectId(req.query.idFile)})
         .then(doc => {
-            console.log('FOUND')
-            res.send(doc[0])
+            const returnDoc = {data: mergeBuffers(doc.map(d => d.data))};
+            res.send(returnDoc);
         })
         .catch(err => {
             res.status(500).send({ message : err.message || "Error Occurred while retriving ditta information" })
         })
 
 
+}
+
+function mergeBuffers(buffers) {
+    return Buffer.concat(buffers);
 }

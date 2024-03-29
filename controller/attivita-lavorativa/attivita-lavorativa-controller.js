@@ -5,6 +5,8 @@ const PlanimetriaDb = require('../../model/planimetria.js');
 const DittaDb = require('../../model/ditta.js');
 const MezzoDb = require('../../model/mezzo.js');
 const {all} = require("axios");
+const ImpostazioniDB = require("../../model/impostazioni");
+const utilService = require("../../util/util-service");
 
 // retrieve and return all attivita
 exports.find = (req, res)=>{
@@ -405,6 +407,27 @@ exports.controlli = async (req, res)=>{
                     }
                 }
             }
+
+            // 8 - CHECK SU TIPI DOCUMENTI OBBLIGATORI STANDARD DEL PERSONALE E DEL MEZZO
+            for (const dip of personale) {
+                const idTipiDocDip = dip.documentazione.documenti.map(doc => doc.idTipoDocumento.toString());
+                const tipiDocImpostazioni = await getTipiDocImpostazioni();
+                const tipiDocObbligatoriStandardDip = tipiDocImpostazioni.filter(tipoDoc => tipoDoc.competenza === 'PERSONALE' && tipoDoc.obbligatorio);
+                const tipiDocObbligatoriMancanti = tipiDocObbligatoriStandardDip.filter(tipoDoc => !idTipiDocDip.includes(tipoDoc._id.toString()));
+                if (tipiDocObbligatoriMancanti && tipiDocObbligatoriMancanti.length > 0) {
+                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il dipendente ' + dip.anagrafica.cognome + ' ' + dip.anagrafica.nome + ' non presenta i seguenti documenti obbligatori standard: ' + tipiDocObbligatoriMancanti.map(tipoDoc => tipoDoc.descrizione),icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                }
+            }
+
+            for (const mezzo of mezzi) {
+                const idTipiDocMezzi = mezzo.documentazione.documenti.map(doc => doc.idTipoDocumento.toString());
+                const tipiDocImpostazioni = await getTipiDocImpostazioni();
+                const tipiDocObbligatoriStandardMezzo = tipiDocImpostazioni.filter(tipoDoc => tipoDoc.competenza === 'MEZZO' && tipoDoc.obbligatorio);
+                const tipiDocObbligatoriMancanti = tipiDocObbligatoriStandardMezzo.filter(tipoDoc => !idTipiDocMezzi.includes(tipoDoc._id.toString()));
+                if (tipiDocObbligatoriMancanti && tipiDocObbligatoriMancanti.length > 0) {
+                    controlliList.push({level: 'danger',type: 'Documentazione',message: 'Il mezzo ' + mezzo.anagrafica.marca + ' ' + mezzo.anagrafica.modello + ' non presenta i seguenti documenti obbligatori standard: ' + tipiDocObbligatoriMancanti.map(tipoDoc => tipoDoc.descrizione),icon: 'pi pi-exclamation-circle',iconClass: 'p-button-danger'});
+                }
+            }
         }
         res.send(controlliList);
     } catch (e) {
@@ -525,4 +548,18 @@ function formatDate(date) {
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${day}/${month}/${year}`;
+}
+
+async function getTipiDocImpostazioni() {
+    return new Promise(await function(resolve, reject) {
+        ImpostazioniDB.find()
+            .then(impostazioni => {
+                const tipiDocumento = utilService.genericSort(impostazioni[0] && impostazioni[0].tipiDocumento ?
+                    impostazioni[0].tipiDocumento : [], 'descrizione');
+                resolve(tipiDocumento);
+            })
+            .catch(err => {
+                resolve(undefined);
+            })
+    });
 }
