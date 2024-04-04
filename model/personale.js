@@ -10,7 +10,8 @@ const personaleSchema = new mongoose.Schema({
         email: String,
         idAzienda: mongoose.Schema.Types.ObjectId,
         note: String,
-        idTipiDocumentoNecessari: [String]
+        idTipiDocumentoNecessari: [String],
+        disattivato: Boolean
     },
     documentazione: {
         documenti:[{

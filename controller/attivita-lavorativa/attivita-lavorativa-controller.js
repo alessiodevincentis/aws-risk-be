@@ -208,7 +208,8 @@ exports.controlli = async (req, res)=>{
         const attivitaLavorativa = req.body.attivitaLavorativa;
         const controlliList = [];
         if (attivitaLavorativa) {
-            const personale = attivitaLavorativa.idDipendenti ?  await PersonaleDb.find({_id: { $in: attivitaLavorativa.idDipendenti } }) : [];
+            let personale = attivitaLavorativa.idDipendenti ?  await PersonaleDb.find({_id: { $in: attivitaLavorativa.idDipendenti } }) : [];
+            personale = personale.filter(dip => !dip.anagrafica?.disattivato);
             let aree = [];
             const areeAggregation = attivitaLavorativa.idAree ? await PlanimetriaDb.aggregate([
                 { $match: { 'aree.uuid': { $in: attivitaLavorativa.idAree } } },
