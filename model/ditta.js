@@ -46,6 +46,7 @@ var schema = new mongoose.Schema({
             email : {
                 type : String
             },
+            obbligatorio: Boolean
         },
         rspp: {
             nome : {
@@ -60,6 +61,7 @@ var schema = new mongoose.Schema({
             email : {
                 type : String
             },
+            obbligatorio: Boolean
         },
         rls: {
             nome : {
@@ -67,7 +69,8 @@ var schema = new mongoose.Schema({
             },
             cognome : {
                 type : String
-            }
+            },
+            obbligatorio: Boolean
         },
         medicoCompetente: {
             nome : {
@@ -75,7 +78,8 @@ var schema = new mongoose.Schema({
             },
             cognome : {
                 type : String
-            }
+            },
+            obbligatorio: Boolean
         },
         addettiPreposti: [{
             nome : {
@@ -123,7 +127,8 @@ var schema = new mongoose.Schema({
             },
             cognome : {
                 type : String
-            }
+            },
+            obbligatorio: Boolean
         },
         manovratorePLE: {
             nome : {
@@ -131,7 +136,8 @@ var schema = new mongoose.Schema({
             },
             cognome : {
                 type : String
-            }
+            },
+            obbligatorio: Boolean
         },
         addettiPesPavPei: [{
             tipo: {
