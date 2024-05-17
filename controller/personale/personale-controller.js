@@ -18,6 +18,9 @@ exports.find = (req, res)=>{
     if (req.query.note) {
         addFilterNote(queryFilter,req.query.note);
     }
+    if (req.query.idTipiDocumenti && req.query.idTipiDocumenti.split(',').length > 0) {
+        addFilterTipiDocumento(queryFilter,req.query.idTipiDocumenti.split(','));
+    }
     PersonaleDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined)
         .then(personale => {
             res.send(personale)
@@ -38,6 +41,9 @@ function addFilterDitte(queryFilter,idDitte) {
 }
 function addFilterFattoriRischio(queryFilter,fattoriRischio) {
     queryFilter.$and.push({"documentazione.documenti.infoIdoneitaSanitaria.fattoriRischio": {$in: fattoriRischio}})
+}
+function addFilterTipiDocumento(queryFilter,idTipiDocumento) {
+    queryFilter.$and.push({"documentazione.documenti.idTipoDocumento": {$in: idTipiDocumento}})
 }
 function addFilterNote(queryFilter,note) {
     queryFilter.$and.push({"anagrafica.note": {$regex: note, $options: 'i'}})
