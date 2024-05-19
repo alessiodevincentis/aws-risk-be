@@ -6,6 +6,9 @@ exports.find = (req, res)=>{
     if (req.query.idDitte && req.query.idDitte.split(',').length > 0) {
         addFilterDitte(queryFilter,req.query.idDitte.split(','));
     }
+    if (!req.query.mostraDisattivati) {
+        addFilterSoloAttivi(queryFilter);
+    }
     MezzoDb.find(queryFilter.$and.length > 0 ? queryFilter : undefined)
         .then(mezzi => {
             res.send(mezzi)
@@ -17,6 +20,9 @@ exports.find = (req, res)=>{
 
 function addFilterDitte(queryFilter,idDitte) {
     queryFilter.$and.push({'anagrafica.idAzienda': {$in: idDitte}})
+}
+function addFilterSoloAttivi(queryFilter) {
+    queryFilter.$and.push({$or: [{"anagrafica.disattivato":{$exists:false}},{"anagrafica.disattivato":false},{"anagrafica.disattivato":null}]})
 }
 
 exports.insert = (req, res)=>{

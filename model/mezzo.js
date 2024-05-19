@@ -10,7 +10,8 @@ const mezzoSchema = new mongoose.Schema({
         dataScadenzaRevisione: Date,
         dataScadenzaRCA: Date,
         idAzienda: mongoose.Schema.Types.ObjectId,
-        idTipiDocumentoNecessari: [String]
+        idTipiDocumentoNecessari: [String],
+        disattivato: Boolean
     },
     documentazione: {
         documenti:[{
