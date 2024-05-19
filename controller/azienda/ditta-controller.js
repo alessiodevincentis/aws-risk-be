@@ -26,6 +26,10 @@ exports.find = (req, res)=>{
         queryFilter = queryFilter ? queryFilter : {};
         queryFilter['$and'] = [{$or: [{dataArchiviazione:{$eq:null}},{dataArchiviazione: {$exists: false}}]}]
     }
+    if (!req.query.mostraDisattivati) {
+        queryFilter = queryFilter ? queryFilter : {};
+        queryFilter['$and'] = [{$or: [{"anagrafica.disattivato":{$exists:false}},{"anagrafica.disattivato":false},{"anagrafica.disattivato":null}]}]
+    }
     DittaDb.find(queryFilter)
         .then(ditte => {
             res.send(ditte)

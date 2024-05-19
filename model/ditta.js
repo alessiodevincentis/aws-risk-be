@@ -30,7 +30,8 @@ var schema = new mongoose.Schema({
             }
         ],
         note: String,
-        idTipiDocumentoNecessari: [String]
+        idTipiDocumentoNecessari: [String],
+        disattivato: Boolean
     },
     responsabiliAddetti: {
         datoreLavoro: {

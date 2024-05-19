@@ -3,6 +3,9 @@ const PersonaleDb = require('../../model/personale.js')
 // retrieve and return all personale
 exports.find = (req, res)=>{
     let queryFilter = {$and: []};
+    if (!req.query.mostraDisattivati) {
+        addFilterSoloAttivi(queryFilter);
+    }
     if (req.query.tempoDeterminato) {
         addFilterTempoDeterminato(queryFilter);
     }
@@ -32,6 +35,9 @@ exports.find = (req, res)=>{
 
 function addFilterTempoIndeterminato(queryFilter) {
     queryFilter.$and.push({"documentazione.documenti.infoUnilav.tipologiaContrattuale":"INDETERMINATO"})
+}
+function addFilterSoloAttivi(queryFilter) {
+    queryFilter.$and.push({$or: [{"anagrafica.disattivato":{$exists:false}},{"anagrafica.disattivato":false},{"anagrafica.disattivato":null}]})
 }
 function addFilterTempoDeterminato(queryFilter) {
     queryFilter.$and.push({"documentazione.documenti.infoUnilav.tipologiaContrattuale":"DETERMINATO"})
