@@ -1,4 +1,5 @@
 const PersonaleDb = require('../../model/personale.js')
+const MezzoDb = require("../../model/mezzo");
 
 // retrieve and return all personale
 exports.find = (req, res)=>{
@@ -55,15 +56,19 @@ function addFilterNote(queryFilter,note) {
     queryFilter.$and.push({"anagrafica.note": {$regex: note, $options: 'i'}})
 }
 
-exports.insert = (req, res)=>{
-    console.log(req.body)
+exports.insert = async (req, res) => {
+    const personaleResponse = await PersonaleDb.find({'anagrafica.codiceFiscale': req.body.personale.anagrafica.codiceFiscale});
+    if (personaleResponse && personaleResponse.length > 0) {
+        res.status(400).send({errorCode: '01', message: "Esiste già un dipendente con il codice fiscale inserito"})
+        return;
+    }
     PersonaleDb.create(req.body.personale)
         .then(result => {
             res.send(result)
         })
         .catch(err => {
             console.error(err)
-            res.status(500).send({ message : err.message || "Error Occurred while inserting personale" })
+            res.status(500).send({message: err.message || "Error Occurred while inserting personale"})
         })
 }
 

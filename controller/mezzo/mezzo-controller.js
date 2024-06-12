@@ -1,4 +1,5 @@
 const MezzoDb = require('../../model/mezzo.js')
+const DittaDb = require("../../model/ditta");
 
 // retrieve and return all mezzi
 exports.find = (req, res)=>{
@@ -25,15 +26,19 @@ function addFilterSoloAttivi(queryFilter) {
     queryFilter.$and.push({$or: [{"anagrafica.disattivato":{$exists:false}},{"anagrafica.disattivato":false},{"anagrafica.disattivato":null}]})
 }
 
-exports.insert = (req, res)=>{
-    console.log(req.body)
+exports.insert = async (req, res) => {
+    const mezzoResponse = await MezzoDb.find({'anagrafica.targaMatricolaSerie': req.body.mezzo.anagrafica.targaMatricolaSerie});
+    if (mezzoResponse && mezzoResponse.length > 0) {
+        res.status(400).send({errorCode: '01', message: "Esiste già un mezzo con la targa inserita"})
+        return;
+    }
     MezzoDb.create(req.body.mezzo)
         .then(result => {
             res.send(result)
         })
         .catch(err => {
             console.error(err)
-            res.status(500).send({ message : err.message || "Error Occurred while inserting mezzo" })
+            res.status(500).send({message: err.message || "Error Occurred while inserting mezzo"})
         })
 }
 

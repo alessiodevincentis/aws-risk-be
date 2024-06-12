@@ -122,6 +122,14 @@ var schema = new mongoose.Schema({
                 type : String
             }
         }],
+        addettiPonteggi: [{
+            nome : {
+                type : String
+            },
+            cognome : {
+                type : String
+            }
+        }],
         manovratoreGru: {
             nome : {
                 type : String
@@ -152,7 +160,22 @@ var schema = new mongoose.Schema({
             cognome : {
                 type : String
             }
-        }]
+        }],
+        operatoreCarrelli: {
+            nome : {
+                type : String
+            },
+            cognome : {
+                type : String
+            },
+            telefono : {
+                type : String
+            },
+            email : {
+                type : String
+            },
+            obbligatorio: Boolean
+        },
     },
     documentazione: {
         documenti:[{

@@ -51,15 +51,19 @@ exports.findById = (req, res)=>{
 
 }
 
-exports.insert = (req, res)=>{
-    console.log(req.body)
+exports.insert = async (req, res) => {
+    const dittaResponse = await DittaDb.find({'anagrafica.partitaIva': req.body.ditta.anagrafica.partitaIva});
+    if (dittaResponse && dittaResponse.length > 0) {
+        res.status(400).send({errorCode: '01',message: "Esiste già un'azienda con la partita iva inserita"})
+        return;
+    }
     DittaDb.create(req.body.ditta)
         .then(result => {
             res.send(result)
         })
         .catch(err => {
             console.error(err)
-            res.status(500).send({ message : err.message || "Error Occurred while inserting azienda" })
+            res.status(500).send({message: err.message || "Error Occurred while inserting azienda"})
         })
 }
 
