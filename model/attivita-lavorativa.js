@@ -11,6 +11,7 @@ var schema = new mongoose.Schema({
     dataFineEffettiva: {type: Date},
     obbligatorietaDuvri: Boolean,
     idAree: [String],
+    idPlanimetrie: [String],
     idAziende: [String],
     idDipendenti: [String],
     idMezzi: [String],
