@@ -464,7 +464,7 @@ async function scriviMezziDitta(worksheet,ditte,tipiDocumentoMezziImpostazioni) 
 
 function addTipoRapportoDip(rowDipendente,dip) {
     const documenti = dip.documentazione ? dip.documentazione.documenti : [];
-    const unilav = documenti.find(doc => doc.descrizione === 'UNILAV');
+    const unilav = documenti.find(doc => doc.descrizione === 'UNILAV' && !doc.sostituito);
     const cellTipoRapporto = rowDipendente.getCell(5);
     if (unilav) {
         const tipologiaContrattuale = unilav.infoUnilav.tipologiaContrattuale;
