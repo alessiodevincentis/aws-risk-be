@@ -9,6 +9,7 @@ var schema = new mongoose.Schema({
         lng: {type: Number}
     },
     dxfIdStorage: {type: String},
+    urn: String,
     aree: [
         {
             uuid: {type: String},
@@ -21,6 +22,7 @@ var schema = new mongoose.Schema({
             width: {type: Number},
             height: {type: Number},
             pointsArray: [[Number]],
+            idNodiAps: [Number],
             drawType: String,
             attivitaLavorative: [
                 {

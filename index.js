@@ -10,7 +10,7 @@ const {initializeGridFs} = require('./database/grid-fs');
 const app = express();
 
 dotenv.config( { path : 'config.env'} )
-const PORT = process.env.PORT || 8080
+const PORT = process.env.PORT || 8081
 
 // log requests
 app.use(morgan('tiny'));
